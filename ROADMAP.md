@@ -3,6 +3,8 @@
 Document de suivi pour les échanges (Vincent / Boun / agents).
 Dernière mise à jour : 12 octobre 2026.
 
+**Phase actuelle : roadmap seulement. Pas d’implémentation, pas de proto dans ce repo tant que P0-1 n’est pas lancé depuis le desktop.**
+
 **Règle :** le SIG est le plateau. Le jeu, c’est le tour + le gagné / perdu.
 
 ---
@@ -308,7 +310,7 @@ Pas de paragraphe. Une ligne :
 ## 9. Comment on suit
 
 - Ce fichier est la **source de vérité** pour le gameplay v0.
-- Pour un échange : citer l’**ID** (`P2-3`, `Q1`…) plutôt que reformuler.
+- Pour un échange : citer l’**ID** (`P2-3`, `P6-5`, `Q1`…) plutôt que reformuler.
 - Changer une décision figée (§3) = une phrase « on casse X parce que Y », pas un ajout silencieux.
 - Le proto AllesLa reste la référence physique jusqu’à **P0-1**.
 
