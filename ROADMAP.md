@@ -11,6 +11,8 @@ Dernière mise à jour : 12 octobre 2026.
 
 Terre post-apo, polluée. Une **source** jaillit encore. Le joueur reprend la main en **plantant des espèces** et, parfois, en **forçant une pluie**. Les **villes** émettent. Les **routes** transportent. Le **vent** dirige. La **pluie** amplifie bénéfices et risques.
 
+Plus tard (v1, pas v0) : une forêt assez dense **se pollinise toute seule** et gagne du terrain. Un **orage** peut foudroyer. Si le bois est trop sec, ça **brûle** ; le vent et la sécheresse **étendent** le feu.
+
 Compétence du joueur :
 
 > Voir l’événement climatique, agir *avant*, pour optimiser l’effet de l’action choisie.
@@ -83,7 +85,8 @@ v0 : cartouche **n’importe où**, mais unique dans le deck.
 - Vent déplace **nuages** et **pollution aérienne / de route**.
 - Pluie = **intensité** du déplacement (bénéfices et risques).
 - Panneau : maintenant + **saison suivante** (un tour de visibilité).
-- Formule : **vent = direction, pluie = intensité, plante = absorption.**
+- Formule v0 : **vent = direction, pluie = intensité, plante = absorption.**
+- Formule v1 (après P5) : le vent dirige aussi **pollen** et **feu**. L’humidité protège le bois ; le sec l’offre à la foudre.
 
 ### Win / lose
 
@@ -100,7 +103,7 @@ v0 : cartouche **n’importe où**, mais unique dans le deck.
 | Nuages | Où va pleuvoir ? | Toujours, translucide. J+1 en pointillés |
 | Pollution | Où est le poison ? | Une layer, deux teintes terre / eau. Route = ruban |
 | Végétation | Où sont *mes* filtres ? | Espèces joueur seulement (sol ≠ lac) |
-| Humidité | Où l’eau peut porter ? | Sol plus sombre, jamais criard |
+| Humidité | Où l’eau peut porter ? (v1 : où le feu *ne peut pas* partir) | Sol plus sombre, jamais criard |
 | Vent | Dans quel sens ? | Panneau + flèches, pas un tapis |
 
 Plateau (pas une layer) : relief, source, villes, route, lac.
@@ -135,7 +138,8 @@ P2 Tour            pause → 1 action → 1 saison
 P3 Émetteurs       source vs villes + route
 P4 Gestes          2 espèces + cartouche
 P5 Partie          scénario « La Source » + win/lose
-P6 Ensuite         plus d’espèces, plus de villes, équilibrage
+P6 Vivant & feu    pollen, orage, foudre, incendie
+P7 Ensuite         plus d’espèces, plus de villes, équilibrage
 ```
 
 Chaque phase a un **résultat visible** et un **critère “c’est jouable / c’est fini”**. On ne commence pas P3 si P2 n’arrête pas le temps.
@@ -213,16 +217,53 @@ Statuts : `todo` · `now` · `blocked` · `done`
 
 **Fini quand :** une partie a un début, un milieu, une fin binaire, sans ouvrir le panel SIG.
 
-### P6 — Plus tard (pas avant P5)
+### P6 — Vivant & feu (après que P5 se gagne et se perde)
+
+Même compétence : **voir l’événement, agir avant**.
+Deux nouveaux flux, mêmes rails que la pollution : le vent **porte**, l’humidité **autorise ou bloque**.
+
+| | Vie | Feu |
+|---|---|---|
+| **Condition** | Forêt assez développée | Orage + foudre + bois **pas assez humide** |
+| **Ça fait** | **Pollinisation** : la végétation s’étend toute seule sous le vent | Incendie : la zone boisée **brûle** (filtres perdus) |
+| **Ça voyage** | Pollen dans le sens du vent | Front de feu dans le sens du vent si **sécheresse** |
+| **Le joueur** | A planté assez tôt, assez dense ; ensuite ça pousse sans lui | Humidifie / coupe / n’a pas trop planté sur une crête sèche avant l’orage |
+
+Règles à tenir :
+
+- Une forêt **jeune** ne pollinise pas. Seuil de densité / maturité (à tweaker).
+- Le pollen n’invente pas une espèce : il **étend** une espèce déjà là, sous le vent.
+- L’orage s’annonce au panneau (comme la pluie). La foudre est l’événement *dans* l’orage.
+- Pas d’humidité suffisante + foudre sur du bois = **départ de feu**. Terrain humide = la foudre ne prend pas.
+- Sécheresse + vent fort = le feu **gagne les cases sous le vent**. Pluie forte / cartouche peut l’arrêter — au prix du lessivage.
+- Le feu détruit la végétation (et donc tes filtres). Cendre sèche = plus de pollen, pollution qui peut repartir.
+
+Layers en plus (seulement à P6, pas en v0) : **pollen** (léger, saison de maturité) et **feu** (orange, prioritaire à la lecture). L’humidité existante suffit comme garde-feu : pas de layer « risque incendie ».
 
 | ID | Item | Qui | Statut | Notes |
 |---|---|---|---|---|
-| P6-1 | Plus d’espèces (vent, route, source) | Vincent | `todo` | |
-| P6-2 | Cartouche seulement sur un nuage déjà là | Vincent | `todo` | Variante plus puzzle |
-| P6-3 | Clic libre sur le terrain | Vincent | `todo` | Desktop ; zones restent le défaut mobile |
-| P6-4 | Plusieurs scénarios / seeds | Partagé | `todo` | |
-| P6-5 | Mode atelier SIG (temps continu, pas de win) | Boun | `todo` | Derrière un toggle debug |
-| P6-6 | Équilibrage chiffres (émission, absorption, lessivage) | Partagé | `todo` | Après que la boucle se *sente* |
+| P6-1 | Seuil « forêt assez développée » → émetteur de pollen | Boun | `todo` | Symétrique d’une ville : la forêt *émet* de la vie |
+| P6-2 | Extension auto des zones végétales sous le vent | Boun | `todo` | Même direction que nuages / pollution |
+| P6-3 | Événement **orage** au panneau (J / J+1) | Vincent | `todo` | Distinct d’une simple pluie forte |
+| P6-4 | Foudre : tirage sur zone boisée sous l’orage | Boun | `todo` | |
+| P6-5 | Départ de feu si humidité sous le seuil | Boun | `todo` | Humide = no fire. Sec = ça prend |
+| P6-6 | Extension du feu avec le vent si sécheresse | Boun | `todo` | Même vecteur vent que le reste |
+| P6-7 | Destruction de la zone boisée (végétation / filtres) | Partagé | `todo` | |
+| P6-8 | Lecture : feu toujours visible ; pollen discret | Boun | `todo` | Pas de 6ᵉ bouton « risque » |
+| P6-9 | Playtest : orage annoncé, on plante / on arrose *avant* | Partagé | `todo` | Même skill qu’en v0 |
+
+**Fini quand :** une forêt mature gagne du terrain sans carte, et un orage sur une crête sèche peut tout reprendre — le joueur dit « j’aurais dû humidifier avant le vent d’ouest ».
+
+### P7 — Plus tard (pas avant P6, sauf équilibrage v0)
+
+| ID | Item | Qui | Statut | Notes |
+|---|---|---|---|---|
+| P7-1 | Plus d’espèces (vent, route, source) | Vincent | `todo` | |
+| P7-2 | Cartouche seulement sur un nuage déjà là | Vincent | `todo` | Variante plus puzzle |
+| P7-3 | Clic libre sur le terrain | Vincent | `todo` | Desktop ; zones restent le défaut mobile |
+| P7-4 | Plusieurs scénarios / seeds | Partagé | `todo` | |
+| P7-5 | Mode atelier SIG (temps continu, pas de win) | Boun | `todo` | Derrière un toggle debug |
+| P7-6 | Équilibrage chiffres (émission, absorption, lessivage, feu) | Partagé | `todo` | Après que la boucle se *sente* |
 
 ---
 
@@ -258,6 +299,9 @@ Pas de paragraphe. Une ligne :
 | Q2 | Cartouche : zone libre ou nuage obligatoire ? | Libre, 1 exemplaire (v0) |
 | Q3 | Le panneau montre-t-il aussi l’origine de la pollution (ville / route) ? | Non en v0, les layers suffisent |
 | Q4 | 1 ou 2 villes dès le premier scénario ? | 2 + 1 route, pour que le Chemin existe |
+| Q5 | Seuil de « forêt assez développée » (densité, âge, surface) ? | Densité + quelques saisons sur la zone |
+| Q6 | La foudre peut-elle tomber hors forêt (sol nu, ville) ? | Non en v1 : seul le bois *prend* |
+| Q7 | Le feu est-il une défaite s’il atteint la source ? | Non : il brûle tes filtres ; la source meurt encore par *pollution* |
 
 ---
 
