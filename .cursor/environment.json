@@ -1,0 +1,5 @@
+{
+  "name": "Gaïa",
+  "install": "node --version\npython3 --version",
+  "start": "bash .cursor/start.sh"
+}

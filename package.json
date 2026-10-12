@@ -1,0 +1,14 @@
+{
+  "name": "gaia",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Générateur de relief 100×100 (bruit de Perlin) rendu low-poly avec Three.js",
+  "scripts": {
+    "dev": "python3 -m http.server 4173 --bind 0.0.0.0",
+    "test": "node --test js/**/*.test.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
