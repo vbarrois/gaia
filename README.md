@@ -5,3 +5,5 @@ Jeu tour par tour sur une terre post-apocalyptique : une dernière source, des v
 Le monde (eau, vent, pollution) est une simulation lisible. Le joueur agit **avant** la météo — il plante, parfois il force une pluie — puis le territoire se résout. Une partie se **gagne ou se perd**.
 
 Suivi, contrat Vincent / Boun, backlog : **[ROADMAP.md](./ROADMAP.md)**.
+
+Brief à injecter dans un agent : **[AGENT-BOUCLE.md](./AGENT-BOUCLE.md)**.
