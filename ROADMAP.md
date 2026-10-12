@@ -310,6 +310,7 @@ Pas de paragraphe. Une ligne :
 ## 9. Comment on suit
 
 - Ce fichier est la **source de vérité** pour le gameplay v0.
+- Brief à coller dans un autre agent : **[AGENT-BOUCLE.md](./AGENT-BOUCLE.md)**.
 - Pour un échange : citer l’**ID** (`P2-3`, `P6-5`, `Q1`…) plutôt que reformuler.
 - Changer une décision figée (§3) = une phrase « on casse X parce que Y », pas un ajout silencieux.
 - Le proto AllesLa reste la référence physique jusqu’à **P0-1**.
