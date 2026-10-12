@@ -1,37 +1,45 @@
 # Gaïa
 
-Prototype de validation du modèle 3D : une grille **100×100** élevée au **bruit de Perlin**, rendue **low-poly** avec Three.js.
+Atelier du vivant : sculpte un relief Perlin, crée un monde, puis restaure-le (énergie, eau, compost, écoscore).
 
-Pages (après activation) : https://vbarrois.github.io/gaia/
+Pages : https://vbarrois.github.io/gaia/
 
 ## Règles de dev
 
 - **HTML + JavaScript** (modules ES, pas de bundler / framework)
-- **localStorage** pour toutes les données utilisateur (monde, panneau, caméra, mute)
-- Three.js chargé depuis un CDN via import map
+- **localStorage** pour la config monde, caméra, panneau, mute — **pas** la progression de partie
+- Three.js via CDN (import map)
 - Logique testable isolée des managers Three.js
 
 ## Découpage
 
 ```
 js/
-├── app.js                 # bootstrap
+├── app.js
 ├── core/
-│   ├── GameManager.js     # orchestration, persist, boucle
-│   ├── SceneManager.js    # caméra, lumières, render
-│   ├── InputManager.js    # clavier → actions
-│   └── SoundManager.js    # Web Audio (cues courts)
+│   ├── GameManager.js      # orchestration
+│   ├── EditorManager.js    # editing / playing, presets, import-export
+│   ├── ActionManager.js    # outils pinceau
+│   ├── TimeManager.js      # pause / 1× / 3× / +1 jour
+│   ├── SceneManager.js     # caméra, lumières, picking
+│   ├── InputManager.js
+│   └── SoundManager.js
+├── world/
+│   ├── World.js            # grille éco 36×36 (GayaCore)
+│   ├── WorldManager.js
+│   ├── config.js           # DEFAULTS, PRESETS, sanitize
+│   ├── perlinGaya.js
+│   ├── actions.js
+│   ├── colors.js           # couches + mesh
+│   └── math.js
 ├── terrain/
-│   ├── TerrainManager.js  # mesh, eau, nuages
-│   ├── soil.js            # roche / terre / végétation
-│   ├── clouds.js          # calque nuageux
-│   ├── terrain.js         # heightmap / biomes
-│   └── perlin.js          # bruit de Perlin
+│   ├── TerrainManager.js   # mesh, eau, nuages, source
+│   └── …                   # utilitaires Perlin/sol/nuages historiques
 ├── ui/
-│   ├── UiManager.js       # panneau propriétés
-│   └── panel.js           # mode réduit
+│   ├── UiManager.js
+│   └── panel.js
 └── store/
-    └── userStore.js       # localStorage
+    └── userStore.js
 ```
 
 ## Lancer
@@ -48,13 +56,22 @@ Ouvrir [http://127.0.0.1:4173](http://127.0.0.1:4173).
 node --test js/**/*.test.js
 ```
 
+## Boucle de jeu
+
+1. **Aperçu** — curseurs / presets sculptent le terrain en direct.
+2. **Créer ce monde** — démarre une partie en pause.
+3. **Actions** — Observer, Dépolluer, Arroser, Enrichir, Planter, Puiser (clic court).
+4. **Temps** — II / 1× / 3× / +1 jour (1 jour ≈ 8 s à 1×).
+5. Objectif : **écoscore ≥ 65**.
+
 ## Contrôles
 
 | Action | Effet |
 | --- | --- |
-| Glisser / pincer | Caméra |
-| `R` | Nouvelle graine |
+| Glisser | Caméra |
+| Clic court | Observer / agir |
+| Couche (select) | Naturel, relief, Perlin, pluie, pollution, humidité, fertilité |
+| `R` | Nouvelle graine (éditeur) |
 | `W` | Fil de fer |
 | `P` | Panneau réduit / ouvert |
 | `M` | Son on / off |
-| Réinitialiser | Efface le localStorage |

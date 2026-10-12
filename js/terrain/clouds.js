@@ -22,6 +22,8 @@ export const CLOUD_GRID = 48
  *   scale?: number,
  *   coverage?: number,
  *   altitude?: number,
+ *   offsetX?: number,
+ *   offsetZ?: number,
  * }} [options]
  * @returns {CloudField}
  */
@@ -31,19 +33,27 @@ export function generateCloudField(options = {}) {
   const scale = options.scale ?? 18
   const coverage = clamp(options.coverage ?? 0.42, 0, 1)
   const altitude = options.altitude ?? 24
+  const offsetX = options.offsetX ?? 0
+  const offsetZ = options.offsetZ ?? 0
   if (size < 2) throw new Error('cloud size must be >= 2')
 
   const perm = createPermutation(seed)
   const values = new Float32Array(size * size)
   const threshold = 1 - coverage * 0.92
+  const last = size - 1
   for (let z = 0; z < size; z += 1) {
     for (let x = 0; x < size; x += 1) {
-      const n = fbm2D(x / scale, z / scale, perm, {
+      // Même convention que la pluie : (x - offset) → dérive dans le sens du vent.
+      const n = fbm2D((x - offsetX) / scale, (z - offsetZ) / scale, perm, {
         octaves: 4,
         persistence: 0.55,
         lacunarity: 2.1,
       })
-      values[z * size + x] = clamp((n + 1) / 2, 0, 1)
+      let v = clamp((n + 1) / 2, 0, 1)
+      // Falloff fort sur les bords : évite la silhouette rectangulaire du tapis.
+      const edge = Math.min(x, z, last - x, last - z) / Math.max(1, last * 0.22)
+      const fade = edge >= 1 ? 1 : edge * edge * (3 - 2 * edge)
+      values[z * size + x] = v * fade
     }
   }
   return { coverage: values, size, altitude, threshold }
@@ -125,13 +135,13 @@ function pushCloudTri(pos, nrm, col, ax, ay, az, bx, by, bz, cx, cy, cz, alpha) 
   nx /= len
   ny /= len
   nz /= len
-  const shade = 0.88 + alpha * 0.08
+  const shade = 0.72 + alpha * 0.1
   for (let i = 0; i < 3; i += 1) {
     const px = i === 0 ? ax : i === 1 ? bx : cx
     const py = i === 0 ? ay : i === 1 ? by : cy
     const pz = i === 0 ? az : i === 1 ? bz : cz
     pos.push(px, py, pz)
     nrm.push(nx, ny, nz)
-    col.push(shade, shade, Math.min(1, shade + 0.04))
+    col.push(shade, shade, Math.min(0.92, shade + 0.03))
   }
 }

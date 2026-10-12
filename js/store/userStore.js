@@ -1,50 +1,38 @@
 import { PANEL_STORAGE_KEY, readPanelCollapsed } from '../ui/panel.js'
+import { DEFAULTS, sanitize } from '../world/config.js'
 
 export const USER_STORAGE_KEY = 'gaia-user'
 
 export const USER_DEFAULTS = {
-  seed: 1,
-  scale: 28,
-  octaves: 5,
-  persistence: 0.5,
-  lacunarity: 2.1,
-  amplitude: 20,
-  warp: 0.35,
-  waterLevel: 0.2,
-  hydrometry: 0.5,
-  pollution: 0.15,
-  cloudAltitude: 24,
-  cloudCoverage: 0.42,
-  wireframe: false,
+  ...DEFAULTS,
   muted: false,
   panelCollapsed: null,
   camera: null,
+  layer: 'natural',
 }
 
+/** Limits used by tests / UI clamps (Gaya world params). */
 export const USER_LIMITS = {
-  seed: { min: 0, max: 999_999_999, integer: true },
-  scale: { min: 12, max: 80, integer: true },
-  octaves: { min: 1, max: 8, integer: true },
-  persistence: { min: 0.2, max: 0.85, integer: false },
-  lacunarity: { min: 1.4, max: 3.2, integer: false },
-  amplitude: { min: 4, max: 36, integer: true },
-  warp: { min: 0, max: 0.8, integer: false },
-  waterLevel: { min: 0, max: 0.6, integer: false },
-  hydrometry: { min: 0, max: 1, integer: false },
-  pollution: { min: 0, max: 1, integer: false },
-  cloudAltitude: { min: 8, max: 48, integer: true },
-  cloudCoverage: { min: 0, max: 1, integer: false },
+  seed: { min: 1, max: 999999, integer: true },
+  amplitude: { min: 0, max: 48, integer: true },
+  scale: { min: 18, max: 120, integer: true },
+  octaves: { min: 1, max: 7, integer: true },
+  persistence: { min: 0.2, max: 0.8, integer: false },
+  water: { min: -14, max: 22, integer: true },
+  falloff: { min: 0, max: 100, integer: true },
+  warp: { min: 0, max: 35, integer: true },
+  resolution: { min: 32, max: 128, integer: true },
+  pollution: { min: 0, max: 100, integer: true },
 }
 
 /**
  * @param {unknown} value
  * @param {{ min: number, max: number, integer: boolean }} limits
  * @param {number} fallback
- * @returns {number}
  */
 export function clampUserNumber(value, limits, fallback) {
-  const n = Number(value)
-  if (!Number.isFinite(n)) return fallback
+  const n = +value
+  if (!(n === n) || n === Infinity || n === -Infinity) return fallback
   const clamped = Math.min(limits.max, Math.max(limits.min, n))
   return limits.integer ? Math.trunc(clamped) : clamped
 }
@@ -56,113 +44,113 @@ export function clampUserNumber(value, limits, fallback) {
  */
 export function sanitizeVec3(value, fallback = null) {
   if (!Array.isArray(value) || value.length !== 3) return fallback
-  const nums = value.map(Number)
+  const nums = value.map((v) => +v)
   if (nums.some((n) => !Number.isFinite(n))) return fallback
   return nums
 }
 
 /**
- * @typedef {{
- *   seed: number,
- *   scale: number,
- *   octaves: number,
- *   persistence: number,
- *   lacunarity: number,
- *   amplitude: number,
- *   warp: number,
- *   waterLevel: number,
- *   hydrometry: number,
- *   pollution: number,
- *   cloudAltitude: number,
- *   cloudCoverage: number,
- *   wireframe: boolean,
- *   muted: boolean,
- *   panelCollapsed: boolean | null,
- *   camera: { position: number[], target: number[] } | null,
- * }} UserData
+ * @typedef {ReturnType<typeof sanitizeUserData>} UserData
  */
 
 /**
  * @param {unknown} raw
- * @returns {UserData}
  */
 export function sanitizeUserData(raw) {
-  const source = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {}
-  /** @type {Record<string, unknown>} */
-  const rec = /** @type {Record<string, unknown>} */ (source)
+  const input = raw && typeof raw === 'object' ? /** @type {Record<string, unknown>} */ (raw) : {}
+  const world = sanitize({
+    seed: input.seed,
+    amplitude: input.amplitude,
+    scale: input.scale,
+    octaves: input.octaves,
+    persistence: input.persistence,
+    water: input.water,
+    falloff: input.falloff,
+    warp: input.warp,
+    resolution: input.resolution,
+    pollution: input.pollution,
+    wireframe: input.wireframe,
+  })
   const cameraRaw =
-    rec.camera && typeof rec.camera === 'object' && !Array.isArray(rec.camera)
-      ? /** @type {Record<string, unknown>} */ (rec.camera)
+    input.camera && typeof input.camera === 'object'
+      ? /** @type {Record<string, unknown>} */ (input.camera)
       : null
-
+  const position = cameraRaw ? sanitizeVec3(cameraRaw.position, null) : null
+  const target = cameraRaw ? sanitizeVec3(cameraRaw.target, null) : null
   return {
-    seed: clampUserNumber(rec.seed, USER_LIMITS.seed, USER_DEFAULTS.seed),
-    scale: clampUserNumber(rec.scale, USER_LIMITS.scale, USER_DEFAULTS.scale),
-    octaves: clampUserNumber(rec.octaves, USER_LIMITS.octaves, USER_DEFAULTS.octaves),
-    persistence: clampUserNumber(rec.persistence, USER_LIMITS.persistence, USER_DEFAULTS.persistence),
-    lacunarity: clampUserNumber(rec.lacunarity, USER_LIMITS.lacunarity, USER_DEFAULTS.lacunarity),
-    amplitude: clampUserNumber(rec.amplitude, USER_LIMITS.amplitude, USER_DEFAULTS.amplitude),
-    warp: clampUserNumber(rec.warp, USER_LIMITS.warp, USER_DEFAULTS.warp),
-    waterLevel: clampUserNumber(rec.waterLevel, USER_LIMITS.waterLevel, USER_DEFAULTS.waterLevel),
-    hydrometry: clampUserNumber(rec.hydrometry, USER_LIMITS.hydrometry, USER_DEFAULTS.hydrometry),
-    pollution: clampUserNumber(rec.pollution, USER_LIMITS.pollution, USER_DEFAULTS.pollution),
-    cloudAltitude: clampUserNumber(
-      rec.cloudAltitude,
-      USER_LIMITS.cloudAltitude,
-      USER_DEFAULTS.cloudAltitude,
-    ),
-    cloudCoverage: clampUserNumber(
-      rec.cloudCoverage,
-      USER_LIMITS.cloudCoverage,
-      USER_DEFAULTS.cloudCoverage,
-    ),
-    wireframe: rec.wireframe === true,
-    muted: rec.muted === true,
-    panelCollapsed:
-      rec.panelCollapsed === true ? true : rec.panelCollapsed === false ? false : null,
-    camera:
-      cameraRaw == null
-        ? null
-        : {
-            position: sanitizeVec3(cameraRaw.position, [62, 26, 52]) ?? [62, 26, 52],
-            target: sanitizeVec3(cameraRaw.target, [0, 5, -6]) ?? [0, 5, -6],
-          },
+    ...world,
+    muted: !!input.muted,
+    panelCollapsed: typeof input.panelCollapsed === 'boolean' ? input.panelCollapsed : null,
+    camera: position && target ? { position, target } : null,
+    layer: typeof input.layer === 'string' ? input.layer : 'natural',
   }
 }
 
 /**
- * @param {Pick<Storage, 'getItem'>} storage
- * @param {number} viewportWidth
- * @returns {UserData}
+ * @param {Storage} storage
+ * @param {number} [viewportWidth]
  */
-export function loadUserData(storage, viewportWidth) {
-  const raw = storage.getItem(USER_STORAGE_KEY)
-  let data = sanitizeUserData(USER_DEFAULTS)
-  if (raw) {
+export function loadUserData(storage, viewportWidth = 1024) {
+  const fallbackCollapsed = () => {
     try {
-      data = sanitizeUserData(JSON.parse(raw))
+      return readPanelCollapsed(storage, viewportWidth)
     } catch {
-      data = sanitizeUserData(USER_DEFAULTS)
+      return viewportWidth < 720
     }
   }
-  if (data.panelCollapsed == null) {
-    data.panelCollapsed = readPanelCollapsed(storage, viewportWidth)
+  try {
+    const raw = storage.getItem(USER_STORAGE_KEY)
+    if (!raw) {
+      return {
+        ...sanitizeUserData({}),
+        panelCollapsed: fallbackCollapsed(),
+      }
+    }
+    const data = sanitizeUserData(JSON.parse(raw))
+    if (data.panelCollapsed === null) {
+      data.panelCollapsed = fallbackCollapsed()
+    }
+    return data
+  } catch {
+    return {
+      ...sanitizeUserData({}),
+      panelCollapsed: fallbackCollapsed(),
+    }
   }
-  return data
 }
 
 /**
- * @param {Pick<Storage, 'setItem'>} storage
- * @param {unknown} data
+ * Persist world config + UI prefs only (never game progress).
+ * @param {Storage} storage
+ * @param {Record<string, unknown>} data
  */
 export function saveUserData(storage, data) {
-  storage.setItem(USER_STORAGE_KEY, JSON.stringify(sanitizeUserData(data)))
+  const sanitized = sanitizeUserData(data)
+  try {
+    storage.setItem(
+      USER_STORAGE_KEY,
+      JSON.stringify({
+        ...sanitize(sanitized),
+        muted: sanitized.muted,
+        panelCollapsed: sanitized.panelCollapsed,
+        camera: sanitized.camera,
+        layer: sanitized.layer,
+      }),
+    )
+    if (typeof sanitized.panelCollapsed === 'boolean') {
+      storage.setItem(PANEL_STORAGE_KEY, sanitized.panelCollapsed ? '1' : '0')
+    }
+  } catch {
+    /* private / blocked storage */
+  }
 }
 
-/**
- * @param {Pick<Storage, 'removeItem'>} storage
- */
+/** @param {Storage} storage */
 export function clearUserData(storage) {
-  storage.removeItem(USER_STORAGE_KEY)
-  storage.removeItem(PANEL_STORAGE_KEY)
+  try {
+    storage.removeItem(USER_STORAGE_KEY)
+    storage.removeItem(PANEL_STORAGE_KEY)
+  } catch {
+    /* private / blocked storage */
+  }
 }

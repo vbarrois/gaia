@@ -9,9 +9,13 @@ export const PANEL_MOBILE_BREAKPOINT = 720
  * @returns {boolean}
  */
 export function readPanelCollapsed(storage, viewportWidth, breakpoint = PANEL_MOBILE_BREAKPOINT) {
-  const stored = storage.getItem(PANEL_STORAGE_KEY)
-  if (stored === '1') return true
-  if (stored === '0') return false
+  try {
+    const stored = storage.getItem(PANEL_STORAGE_KEY)
+    if (stored === '1') return true
+    if (stored === '0') return false
+  } catch {
+    /* private / blocked storage */
+  }
   return viewportWidth < breakpoint
 }
 
@@ -20,5 +24,9 @@ export function readPanelCollapsed(storage, viewportWidth, breakpoint = PANEL_MO
  * @param {boolean} collapsed
  */
 export function writePanelCollapsed(storage, collapsed) {
-  storage.setItem(PANEL_STORAGE_KEY, collapsed ? '1' : '0')
+  try {
+    storage.setItem(PANEL_STORAGE_KEY, collapsed ? '1' : '0')
+  } catch {
+    /* private / blocked storage */
+  }
 }

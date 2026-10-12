@@ -1,146 +1,113 @@
 <!DOCTYPE html>
 <html lang="fr">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Gaïa — relief low-poly</title>
-    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Source+Sans+3:wght@400;600&display=swap"
-      rel="stylesheet"
-    />
-    <link rel="stylesheet" href="./css/style.css?v=soil-8" />
-    <script type="importmap">
-      {
-        "imports": {
-          "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
-          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
-        }
-      }
-    </script>
-  </head>
-  <body>
-    <div id="canvas-host"></div>
-    <p id="webgl-error" class="webgl-error hidden">WebGL est indisponible.</p>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#122523">
+<title>Gaïa — Atelier du vivant</title>
+<link rel="icon" href="./favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="./css/style.css?v=gaya-ui-15">
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body class="editing">
 
-    <aside id="properties-panel" class="hud panel">
-      <div class="panel-head">
-        <div class="brand">
-          <h1>Gaïa</h1>
-          <span class="grid-tag">100 × 100</span>
-        </div>
-        <div class="head-actions">
-          <button
-            id="toggle-mute"
-            type="button"
-            class="ghost icon-btn"
-            aria-pressed="false"
-            title="Couper le son"
-          >
-            Son
-          </button>
-          <button
-            id="toggle-panel"
-            type="button"
-            class="ghost icon-btn"
-            aria-controls="panel-body"
-            aria-expanded="true"
-            title="Réduire le panneau"
-          >
-            Propriétés
-          </button>
-        </div>
-      </div>
-      <div id="panel-body">
-      <p class="lede">
-        Grille Perlin 100×100, rendue en low-poly avec Three.js. Cliquez-glissez pour orbiter.
-      </p>
+<svg class="symbols" aria-hidden="true"><defs>
+<symbol id="i-leaf" viewBox="0 0 24 24"><path d="M20 4C9 2 3 7 5 14c2 7 14 7 15-10Z"/><path d="m4 21 12-12M9 16l-1-5m5 1 5 1"/></symbol>
+<symbol id="i-mountain" viewBox="0 0 24 24"><path d="m2 20 7-13 4 7 3-10 6 16Z"/><path d="m6 13 3 1 2-3m3 0 2 2 2-2"/></symbol>
+<symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h6m5 0h5M4 17h11m4 0h1"/><circle cx="12" cy="7" r="2"/><circle cx="17" cy="17" r="2"/></symbol>
+<symbol id="i-water" viewBox="0 0 24 24"><path d="M12 3C10 7 5 11 5 15a7 7 0 0 0 14 0c0-4-5-8-7-12Z"/><path d="M8 15a4 4 0 0 0 4 4"/></symbol>
+<symbol id="i-energy" viewBox="0 0 24 24"><path d="m14 2-9 12h6l-1 8 9-13h-6Z"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="10" cy="10" r="6"/><path d="m15 15 6 6"/></symbol>
+<symbol id="i-clean" viewBox="0 0 24 24"><path d="m15 3-5 10M8 12l6 3-3 7-8-4Z"/><path d="m8 16-2 4m14-14v5m-2-3h4m-3 8h2"/></symbol>
+<symbol id="i-soil" viewBox="0 0 24 24"><path d="m2 8 10-5 10 5-10 5Zm0 6 10 5 10-5M2 19l10 5 10-5"/></symbol>
+<symbol id="i-fill" viewBox="0 0 24 24"><path d="M5 11h14l-2 11H7Zm2 0V8a5 5 0 0 1 10 0v3m-7-3 2-4 2 4"/></symbol>
+<symbol id="i-arrow" viewBox="0 0 24 24"><path d="M4 12h15m-6-6 6 6-6 6"/></symbol>
+<symbol id="i-reset" viewBox="0 0 24 24"><path d="M4 9a8 8 0 1 1 0 7M4 3v6h6"/></symbol>
+<symbol id="i-top" viewBox="0 0 24 24"><path d="M4 4h16v16H4Z"/><path d="m8 14 4-6 4 6Z"/></symbol>
+<symbol id="i-shuffle" viewBox="0 0 24 24"><path d="M3 6h3c5 0 5 12 10 12h5m-5-4 4 4-4 4M3 18h3c2 0 3-3 4-5m4-5 2-2h5m-5-4 4 4-4 4"/></symbol>
+<symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10v.1"/></symbol>
+<symbol id="i-islands" viewBox="0 0 24 24"><path d="M2 20c2-3 4 3 7 0s5 3 8 0 4 1 5 0M2 14l6-8 5 8Zm12 0 3-6 5 6ZM8 6V3"/></symbol>
+<symbol id="i-hills" viewBox="0 0 24 24"><path d="M2 19c1-12 10-12 13 0M10 10c6-7 10-3 12 9M2 19h20"/></symbol>
+<symbol id="i-valley" viewBox="0 0 24 24"><path d="M2 5c5 0 3 14 10 14S18 5 22 5M2 20h20M12 7v6m-2-2 2 2 2-2"/></symbol>
+<symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6"/></symbol>
+</defs></svg>
+<div class="app">
+<header class="topbar">
+ <div class="brand"><svg class="brandmark" viewBox="0 0 36 36" aria-hidden="true"><path fill="currentColor" d="M17 2c1 12-3 17-14 16C2 7 7 2 17 2Zm16 1c-11 0-16 5-15 16 11 1 16-4 15-16ZM3 21c11-1 16 3 16 13C9 35 4 31 3 21Zm19 0c0 6-1 10-3 13 9 0 14-5 15-13Z"/></svg><div><b>GAÏA</b><small>ATELIER DU VIVANT</small></div></div>
+ <span class="divider"></span><div class="top-label"><b>Un paysage &agrave; r&eacute;inventer.</b>Prototype 02 &nbsp;/&nbsp; terrain proc&eacute;dural</div>
+ <div class="topright"><span class="pill buildpill"><span class="dot"></span> THREE.JS + PERLIN</span><span class="pill" id="dayBadge">APER&Ccedil;U</span><button id="editBtn" class="configbtn hidden"><svg class="i" style="vertical-align:middle;width:14px;height:14px"><use href="#i-sliders"/></svg> Terrain</button><button id="toggleMute" class="iconbtn ghost" aria-pressed="false" aria-label="Son" title="Son">♪</button>
+ <button id="helpBtn" class="iconbtn ghost" aria-label="Aide"><svg><use href="#i-info"/></svg></button></div>
+</header>
+<main class="workspace">
+<section class="viewport" id="viewport" aria-label="Carte interactive du terrain">
+ <div class="viewtag"><span class="eyebrow">EXPLORATION / TERRAIN FINI</span><strong id="worldTitle">Le commencement</strong><span class="seedlabel" id="seedLabel">Graine 007429</span></div>
+ <div class="viewtools"><label class="sr-only" for="layer">Couche d'affichage</label><select id="layer"><option value="natural">Naturel</option><option value="height">Relief</option><option value="perlin">Perlin</option><option value="rain">Pluie</option><option value="pollution">Pollution</option><option value="moisture">Humidit&eacute;</option><option value="soil">Fertilit&eacute;</option></select><button id="topView" class="iconbtn" aria-label="Vue du dessus" title="Vue du dessus"><svg><use href="#i-top"/></svg></button><button id="resetView" class="iconbtn" aria-label="Recentrer la camera" title="Recentrer"><svg><use href="#i-reset"/></svg></button></div>
+ <div class="mobilehud hidden" id="mobileHud"><span id="mEnergy"></span><span id="mWater"></span><span id="mCompost"></span><span id="mEco"></span><span id="mWeather"></span></div>
+ <div class="mobiletime hidden" id="mobileTime"><button data-speed="0" class="selected" aria-label="Pause">II</button><button data-speed="1">1&times;</button><button data-speed="3">3&times;</button><button data-step>+1 j</button></div>
+ <div id="mobileBrush" class="mobilebrush hidden"><label for="brushMobile">Zone <output id="out-brushMobile">8</output></label><input id="brushMobile" type="range" min="3" max="16" step="1" value="8" aria-label="Rayon d'intervention"></div>
+ <p id="webglError" class="offline hidden">WebGL est indisponible sur cette machine.</p>
+ <div class="offline hidden" id="offlineNotice">Vue 2D de secours. Three.js n'a pas pu &ecirc;tre charg&eacute;. Une connexion Internet et WebGL 2 sont n&eacute;cessaires pour la 3D.</div>
+ <div class="viewlegend" id="viewLegend"><span><i class="swatch lifedot"></i>Vivant</span><span><i class="swatch waterdot"></i>Eau</span><span><i class="swatch dirtydot"></i>Pollution</span></div>
+ <figure id="fieldView" class="fieldview hidden"><canvas id="fieldCanvas" width="192" height="192" aria-label="Image du champ sélectionné"></canvas><figcaption id="fieldCaption"></figcaption></figure>
+ <div class="compass"><svg viewBox="0 0 40 40"><path d="m20 3 8 28-8-5-8 5Z" fill="none" stroke="currentColor" stroke-width="1"/><path d="m20 3 0 23-8 5Z" fill="currentColor" opacity=".6"/></svg>N</div>
+ <div class="viewfooter"><div class="hint"><span class="desktoponly">Glisser : tourner &nbsp;&middot;&nbsp; Molette : zoom &nbsp;&middot;&nbsp; Clic droit : d&eacute;placer<br>Clic court : observer / agir</span><span class="mobileonly">1 doigt : tourner &nbsp;&middot;&nbsp; 2 doigts : zoom / d&eacute;placer<br>Toucher bri&egrave;vement : observer / agir</span></div><span class="enginebadge" id="engineBadge">THREE.JS</span></div>
+ <div class="mobile-inspect hidden" id="mobileInspect"></div>
+ <nav class="actiondock hidden" id="actionDock" aria-label="Actions sur le terrain">
+  <button data-action="inspect" class="selected" title="Observer"><svg><use href="#i-search"/></svg>Observer</button><button data-action="clean" title="Retirer la pollution"><svg><use href="#i-clean"/></svg>D&eacute;polluer</button><button data-action="water" title="Arroser le sol"><svg><use href="#i-water"/></svg>Arroser</button><button data-action="soil" title="Enrichir le sol avec du compost"><svg><use href="#i-soil"/></svg>Enrichir</button><button data-action="plant" title="Planter de la vegetation"><svg><use href="#i-leaf"/></svg>Planter</button><button data-action="purify" title="Prelever et purifier de l'eau"><svg><use href="#i-fill"/></svg>Puiser</button>
+ </nav>
+ <div id="toast" class="toast" role="status" aria-live="polite"></div>
+ <div class="loading" id="loading"><div class="loadinner"><div class="spinner"></div><strong>Un monde prend forme.</strong><p id="loadingText">Chargement de Three.js et g&eacute;n&eacute;ration du relief.<br>La biblioth&egrave;que 3D n&eacute;cessite une connexion Internet.</p><button id="fallbackBtn" class="primary hidden">Ouvrir la vue 2D de secours</button></div></div>
+</section>
+<aside class="sidebar" id="sidebar">
+ <div id="editorHead" class="panelhead"><div><div class="eyebrow">01 / DESSINER LE MONDE</div><h1>Le relief, &agrave; ta main.</h1></div><svg class="i"><use href="#i-sliders"/></svg></div>
+ <div class="panel-scroll" id="editorScroll">
+  <p class="intro">D&eacute;place les curseurs pour sculpter l'aper&ccedil;u. La graine conserve l'identit&eacute; du paysage.</p>
+  <div class="presets" aria-label="Paysages de depart"><button data-preset="collines"><svg><use href="#i-hills"/></svg>Collines</button><button data-preset="archipel"><svg><use href="#i-islands"/></svg>Archipel</button><button data-preset="montagnes"><svg><use href="#i-mountain"/></svg>Montagnes</button><button data-preset="vallee"><svg><use href="#i-valley"/></svg>Vall&eacute;e</button></div>
+  <div class="group-title"><span>Graine du paysage</span><span>REPRODUCTIBLE</span></div>
+  <div class="seedrow"><label class="sr-only" for="seed">Graine du terrain</label><input id="seed" type="number" min="1" max="999999" step="1" value="7429" inputmode="numeric"><button id="randomSeed" class="iconbtn" aria-label="Nouvelle graine aleatoire" title="Nouvelle graine"><svg><use href="#i-shuffle"/></svg></button></div>
+  <div class="range"><label for="amplitude">Amplitude du relief <output id="out-amplitude"></output></label><input id="amplitude" data-config="amplitude" type="range" min="0" max="48" step="1"><div class="range-ends"><span>PLAT</span><span>ESCARP&Eacute;</span></div></div>
+  <div class="range"><label for="scale">Taille des collines <output id="out-scale"></output></label><input id="scale" data-config="scale" type="range" min="18" max="120" step="1"><div class="range-ends"><span>PETITES / RAPPROCH&Eacute;ES</span><span>LARGES / ESPAC&Eacute;ES</span></div></div>
+  <div class="range"><label for="octaves">Couches de d&eacute;tail <output id="out-octaves"></output></label><input id="octaves" data-config="octaves" type="range" min="1" max="7" step="1"><small>Octaves superpos&eacute;es du bruit de Perlin.</small></div>
+  <div class="range"><label for="persistence">Rugosit&eacute; <output id="out-persistence"></output></label><input id="persistence" data-config="persistence" type="range" min="0.2" max="0.8" step="0.01"><div class="range-ends"><span>DOUX</span><span>ACCIDENT&Eacute;</span></div></div>
+  <div class="range"><label for="water">Niveau des plans d'eau <output id="out-water"></output></label><input id="water" data-config="water" type="range" min="-14" max="22" step="1"><div class="range-ends"><span>BAS</span><span>HAUT</span></div></div>
+  <div class="range"><label for="falloff">Abaissement des bords <output id="out-falloff"></output></label><input id="falloff" data-config="falloff" type="range" min="0" max="100" step="1"><div class="range-ends"><span>CONTINENT</span><span>&Icirc;LE</span></div></div>
+  <details id="advanced"><summary>R&eacute;glages avanc&eacute;s</summary>
+   <div class="range"><label for="warp">D&eacute;formation du bruit <output id="out-warp"></output></label><input id="warp" data-config="warp" type="range" min="0" max="35" step="1"><small>D&eacute;vie les formes, sans modifier la graine.</small></div>
+   <div class="range"><label for="resolution">R&eacute;solution du maillage <output id="out-resolution"></output></label><input id="resolution" data-config="resolution" type="range" min="32" max="128" step="16"><small>32&ndash;64 pour mobile ; 96&ndash;128 pour plus de finesse.</small></div>
+   <div class="range"><label for="pollution">Pollution initiale <output id="out-pollution"></output></label><input id="pollution" data-config="pollution" type="range" min="0" max="100" step="1"></div>
+   <label class="toggleline"><input id="wireframe" type="checkbox"> Afficher les triangles</label>
+   <div class="bottom-links"><button id="exportConfig">Exporter les r&eacute;glages</button><button id="importConfig">Importer</button><input type="file" id="configFile" accept=".json,application/json" hidden></div>
+  </details>
+  <div class="statusline"><span id="terrainSummary">G&eacute;n&eacute;ration du terrain</span><b id="terrainWet"></b></div>
+ </div>
+ <div id="editorBottom" class="panelbottom"><button class="primary" id="commitWorld">Cr&eacute;er ce monde <svg><use href="#i-arrow"/></svg></button><div class="bottom-links"><button id="cancelEditor" hidden>Revenir &agrave; ma partie</button><button id="defaultConfig">R&eacute;glages initiaux</button></div><p id="editorNote">Aper&ccedil;u en direct &middot; cr&eacute;ation d'une nouvelle partie</p></div>
+ <div class="gameside hidden" id="gamePanel">
+  <div class="panelhead"><div><div class="eyebrow">02 / FAIRE REVENIR LA VIE</div><h2>Restaurer, pas &agrave; pas.</h2></div><svg class="i"><use href="#i-leaf"/></svg></div>
+  <div class="panel-scroll">
+   <div class="resourcegrid"><div class="resource"><svg class="i"><use href="#i-energy"/></svg><b id="energy">100</b><span>&Eacute;nergie / 100</span></div><div class="resource"><svg class="i"><use href="#i-water"/></svg><b id="reserve">80</b><span>Eau propre / 150</span></div><div class="resource"><svg class="i"><use href="#i-leaf"/></svg><b id="compost">24</b><span>Compost / 99</span></div><div class="resource"><svg class="i"><use href="#i-clean"/></svg><b id="waste">0</b><span>Pollution isol&eacute;e</span></div></div>
+   <div class="ecoheader"><span>Restauration du monde</span><strong id="ecoscore">35</strong></div><div class="meter"><i id="ecobar"></i></div><p class="detail" id="ecotext">Objectif : atteindre un &eacute;coscore de 65.</p>
+   <div class="range"><label for="brush">Rayon d'intervention <output id="out-brush">8</output></label><input id="brush" type="range" min="3" max="16" step="1" value="8"><small>Le co&ucirc;t augmente avec le nombre de cases trait&eacute;es.</small></div>
+   <div class="actionhelp" id="actionHelp"></div>
+   <div class="inspectcard"><h3><span id="tileTitle">Observer une zone</span><small id="tileHeight"></small></h3><p class="detail" id="noSelection">Clique sur le terrain pour lire l'&eacute;tat du sol.</p><div id="tileFields" hidden><div class="field pollution"><span>Pollution</span><div class="meter"><i id="bar-pollution"></i></div><output id="val-pollution"></output></div><div class="field moisture"><span>Humidit&eacute;</span><div class="meter"><i id="bar-moisture"></i></div><output id="val-moisture"></output></div><div class="field soil"><span>Fertilit&eacute;</span><div class="meter"><i id="bar-soil"></i></div><output id="val-soil"></output></div><div class="field"><span>V&eacute;g&eacute;tation</span><div class="meter"><i id="bar-veg"></i></div><output id="val-veg"></output></div></div></div>
+   <details><summary>Les r&egrave;gles de cette version</summary><p class="detail">L'&eacute;nergie revient chaque jour. La v&eacute;g&eacute;tation favorise le sol et renouvelle lentement le compost. Les d&eacute;chets pollu&eacute;s restent isol&eacute;s : ils ne deviennent pas du compost.</p><p class="detail">La pluie ne tombe que sur des zones fixes, dessin&eacute;es par un second champ de Perlin. Ces terres gagnent de l'humidit&eacute; les jours de pluie. Les plans d'eau ont une hauteur fixe ; le ruissellement et la conservation de l'eau ne sont pas encore simul&eacute;s.</p><p class="detail">Une petite source alimente l'oasis. Le cycle naturel reste volontairement simplifi&eacute; et utilise des unit&eacute;s de jeu.</p></details>
+  </div>
+  <div class="panelbottom play-bottom"><div class="timecontrols"><div class="timebuttons"><button data-speed="0" class="selected" aria-label="Pause">II</button><button data-speed="1">1&times;</button><button data-speed="3">3&times;</button></div><button data-step>+1 jour</button></div><p id="weather">24 &deg;C &nbsp;&middot;&nbsp; ciel clair</p><button id="gameEdit" class="ghost" style="width:100%;margin-top:9px;font-size:11px">Modifier le terrain / nouvelle partie</button></div>
+ </div>
+</aside>
+</main>
+</div>
+<div class="about hidden" id="help" role="dialog" aria-modal="true" aria-labelledby="helpTitle"><article><div class="eyebrow">GAÏA / PROTOTYPE 02</div><h2 id="helpTitle">Dessiner. Observer. Restaurer.</h2><p><b>Cr&eacute;e ton paysage.</b> Les curseurs modifient un aper&ccedil;u. La m&ecirc;me graine et les m&ecirc;mes r&eacute;glages redonnent le m&ecirc;me monde. Le bouton &laquo; Cr&eacute;er ce monde &raquo; d&eacute;marre une nouvelle partie, en pause.</p><p><b>Explore.</b> Glisse pour tourner, utilise la molette pour zoomer, le clic droit pour d&eacute;placer. Sur mobile : un doigt pour tourner, deux doigts pour zoomer ou d&eacute;placer. Un clic ou toucher <b>court</b> observe ou agit. Le glissement de cam&eacute;ra ne d&eacute;clenche jamais une action.</p><p><b>Restaure.</b> Commence autour de la source. D&eacute;pollue, enrichis les sols pauvres, arrose et plante. Pour recharger ton eau, choisis &laquo; Puiser &raquo;, puis un lac ou la source. Active <b>1&times;</b> (un jour en 8 secondes) ou avance jour par jour. Vise un &eacute;coscore de 65.</p><p><b>Atelier non destructif.</b> Ouvrir les r&eacute;glages met la partie en pause. &laquo; Revenir &agrave; ma partie &raquo; annule l'aper&ccedil;u. Sur mobile, le bouton Terrain permet aussi de revenir sans appliquer. Les param&egrave;tres du dernier monde cr&eacute;&eacute; sont m&eacute;moris&eacute;s quand le navigateur l'autorise, <b>pas la progression</b>.</p><p><b>Lire le terrain.</b> Dans le menu des couches, <b>Pluie</b> montre les zones qui re&ccedil;oivent l'eau, et <b>Perlin</b> l'image du bruit qui sculpte le relief, avant l'eau et la couleur. Un cadre en bas &agrave; gauche reprend cette image &agrave; plat. En vue naturelle, un liser&eacute; clair entoure les zones de pluie.</p><p><b>Limites.</b> Lacs &agrave; niveau fixe, humidit&eacute; et cycle naturel simplifi&eacute;s. La forme vallonn&eacute;e n'est pas une simulation d'&eacute;rosion. Toutes les valeurs sont des unit&eacute;s de jeu.</p><p><b>Technique.</b> Three.js r180 (MIT), Perlin am&eacute;lior&eacute; avec permutation d&eacute;terministe et octaves fBm. Maillage visuel s&eacute;par&eacute; de la grille &eacute;cologique 36 &times; 36. Biblioth&egrave;que 3D charg&eacute;e via CDN : connexion Internet n&eacute;cessaire. Un mode 2D est disponible en secours.</p><button id="closeHelp" class="primary">C'est parti <svg class="i" style="vertical-align:middle"><use href="#i-arrow"/></svg></button></article></div>
 
-      <div class="controls">
-        <label>
-          Graine
-          <span></span>
-        </label>
-        <div class="seed-row">
-          <input id="seed" type="number" min="0" step="1" value="1" />
-          <button id="random-seed" type="button" class="ghost">Aléatoire</button>
-        </div>
-
-        <label>
-          Échelle
-          <span id="scale-value">28</span>
-          <input id="scale" type="range" min="12" max="80" step="1" value="28" />
-        </label>
-        <label>
-          Octaves
-          <span id="octaves-value">5</span>
-          <input id="octaves" type="range" min="1" max="8" step="1" value="5" />
-        </label>
-        <label>
-          Persistance
-          <span id="persistence-value">0.50</span>
-          <input id="persistence" type="range" min="0.2" max="0.85" step="0.01" value="0.5" />
-        </label>
-        <label>
-          Lacunarité
-          <span id="lacunarity-value">2.10</span>
-          <input id="lacunarity" type="range" min="1.4" max="3.2" step="0.05" value="2.1" />
-        </label>
-        <label>
-          Amplitude
-          <span id="amplitude-value">20</span>
-          <input id="amplitude" type="range" min="4" max="36" step="1" value="20" />
-        </label>
-        <label>
-          Distorsion
-          <span id="warp-value">0.35</span>
-          <input id="warp" type="range" min="0" max="0.8" step="0.05" value="0.35" />
-        </label>
-        <label>
-          Niveau de l’eau
-          <span id="water-value">20%</span>
-          <input id="waterLevel" type="range" min="0" max="0.6" step="0.01" value="0.2" />
-        </label>
-        <p class="section-label">Sol</p>
-        <label>
-          Hydrométrie
-          <span id="hydrometry-value">50%</span>
-          <input id="hydrometry" type="range" min="0" max="1" step="0.01" value="0.5" />
-        </label>
-        <label>
-          Pollution
-          <span id="pollution-value">15%</span>
-          <input id="pollution" type="range" min="0" max="1" step="0.01" value="0.15" />
-        </label>
-        <p class="section-label">Nuages</p>
-        <label>
-          Altitude
-          <span id="cloud-altitude-value">24</span>
-          <input id="cloudAltitude" type="range" min="8" max="48" step="1" value="24" />
-        </label>
-        <label>
-          Couverture
-          <span id="cloud-coverage-value">42%</span>
-          <input id="cloudCoverage" type="range" min="0" max="1" step="0.01" value="0.42" />
-        </label>
-      </div>
-
-      <label class="toggle">
-        <input id="wireframe" type="checkbox" />
-        Fil de fer
-      </label>
-
-      <div class="actions">
-        <button id="reset" type="button" class="ghost">Réinitialiser</button>
-      </div>
-      </div>
-    </aside>
-
-    <p class="hud hint">R · monde &nbsp;·&nbsp; W · fil de fer &nbsp;·&nbsp; P · panneau &nbsp;·&nbsp; M · son &nbsp;·&nbsp; pincer · zoom</p>
-    <p id="stats" class="hud stats">Génération…</p>
-
-    <script type="module" src="./js/app.js?v=soil-8"></script>
-  </body>
+<script>
+setTimeout(() => document.getElementById('loading')?.classList.add('hidden'), 12000);
+</script>
+<script type="module" src="./js/app.js?v=gaya-ui-15"></script>
+</body>
 </html>

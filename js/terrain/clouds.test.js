@@ -18,6 +18,14 @@ describe('generateCloudField', () => {
     const sparse = generateCloudField({ seed: 1, size: 12, coverage: 0.1 })
     assert.ok(sparse.threshold > dense.threshold)
   })
+
+  it('fades coverage on the domain border', () => {
+    const field = generateCloudField({ seed: 4, size: 24, coverage: 0.9 })
+    const last = field.size - 1
+    assert.ok(field.coverage[0] < 0.05)
+    assert.ok(field.coverage[last] < 0.05)
+    assert.ok(field.coverage[last * field.size] < 0.05)
+  })
 })
 
 describe('buildLowPolyClouds', () => {

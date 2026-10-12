@@ -2,9 +2,14 @@ import { readPanelCollapsed } from '../ui/panel.js'
 import { USER_DEFAULTS, clearUserData, loadUserData, saveUserData } from '../store/userStore.js'
 import { TerrainManager } from '../terrain/TerrainManager.js'
 import { UiManager } from '../ui/UiManager.js'
+import { WorldManager } from '../world/WorldManager.js'
+import { ECO_GOAL } from '../world/config.js'
 import { DEFAULT_CAMERA, SceneManager } from './SceneManager.js'
 import { InputManager } from './InputManager.js'
 import { SoundManager } from './SoundManager.js'
+import { EditorManager } from './EditorManager.js'
+import { ActionManager } from './ActionManager.js'
+import { TimeManager } from './TimeManager.js'
 
 export class GameManager {
   /**
@@ -15,51 +20,217 @@ export class GameManager {
     this.user = loadUserData(this.storage, window.innerWidth)
     this.scene = new SceneManager(host)
     this.terrain = new TerrainManager()
+    this.worlds = new WorldManager()
+    this.editor = new EditorManager(this.user)
+    this.actions = new ActionManager()
+    this.time = new TimeManager()
     this.sound = new SoundManager()
     this.ui = new UiManager({
-      onRebuild: () => this.rebuild(),
+      onRebuild: () => this.preview(),
       onRandomSeed: () => this.randomSeed(),
-      onReset: () => this.reset(),
-      onTogglePanel: () => this.togglePanel(),
+      onPreset: (name) => this.applyPreset(name),
+      onCommit: () => this.commitWorld(),
+      onCancel: () => this.cancelEditor(),
+      onEnterEditor: () => this.enterEditor(),
       onToggleMute: () => this.toggleMute(),
+      onExport: () => this.exportConfig(),
+      onImportFile: (file) => this.importConfig(file),
+      onDefaults: () => this.resetDefaults(),
+      onTool: (tool) => this.setTool(tool),
+      onBrush: (radius) => this.actions.setRadius(radius),
+      onSpeed: (speed) => this.setSpeed(speed),
+      onStepDay: () => this.stepDay(),
+      onLayer: (layer) => this.setLayer(layer),
+      onTopView: () => this.scene.resetCamera(true),
+      onResetView: () => this.scene.resetCamera(false),
+      onHelp: (open) => this.ui.setHelpOpen(open),
     })
     this.input = new InputManager((action) => this.handleAction(action))
     this.frame = 0
     this.running = false
+    this.lastTs = 0
+    this.rainVisAcc = 0
+    /** @type {import('../world/World.js').Cell | null} */
+    this.selected = null
+    this.pointerDown = null
 
-    this.scene.add(this.terrain.mesh)
-    this.scene.add(this.terrain.water)
-    this.scene.add(this.terrain.clouds)
+    this.scene.add(this.terrain.group)
     this.scene.controls.addEventListener('end', () => this.persist())
-    this.scene.renderer.domElement.addEventListener('pointerdown', () => this.sound.unlock())
+    this.scene.renderer.domElement.addEventListener('pointerdown', (event) => {
+      this.sound.unlock()
+      this.pointerDown = { x: event.clientX, y: event.clientY, event }
+    })
+    this.scene.renderer.domElement.addEventListener('pointerup', (event) => this.onPointerUp(event))
   }
 
   start() {
-    this.sound.setMuted(Boolean(this.user.muted))
+    this.sound.setMuted(!!this.user.muted)
     this.ui.applyUserData(this.user)
-    this.scene.applyCamera(this.user.camera)
+    if (this.user.camera) this.scene.applyCamera(this.user.camera)
+    else this.scene.resetCamera(false)
     this.ui.bind()
     this.input.bind()
-    this.rebuild()
+    this.ui.setTool(this.actions.tool)
+    this.ui.setSpeed(this.time.speed)
+    this.ui.setMode('editing')
+    this.preview()
+    this.ui.hideLoading()
     this.running = true
-    this.tick()
+    this.lastTs = performance.now()
+    this.tick(this.lastTs)
   }
 
-  /**
-   * @param {string} [reason]
-   */
-  rebuild(reason) {
+  preview() {
     const options = this.ui.readWorldOptions()
-    const stats = this.terrain.rebuild(options)
+    this.editor.updateDraft(options)
+    const world = this.worlds.rebuild(this.editor.draft)
+    const stats = this.terrain.rebuild(world, {
+      layer: this.ui.getLayer(),
+      wireframe: world.config.wireframe,
+    })
     this.ui.setStats(stats)
+    this.ui.updateFieldView(world, this.ui.getLayer())
     this.persist()
-    if (reason === 'generate') this.sound.play('generate')
-    if (reason === 'ui') this.sound.play('ui')
   }
 
   randomSeed() {
     this.ui.setRandomSeed()
-    this.rebuild('generate')
+    this.preview()
+    this.sound.play('generate')
+  }
+
+  /** @param {string} name */
+  applyPreset(name) {
+    const draft = this.editor.applyPreset(name)
+    this.ui.applyWorldConfig(draft)
+    this.preview()
+  }
+
+  resetDefaults() {
+    const draft = this.editor.resetDefaults()
+    this.ui.applyWorldConfig(draft)
+    this.preview()
+  }
+
+  commitWorld() {
+    const options = this.ui.readWorldOptions()
+    this.editor.updateDraft(options)
+    this.editor.commit()
+    const world = this.worlds.rebuild(this.editor.draft)
+    this.worlds.commit()
+    this.time.setSpeed(0)
+    this.ui.setSpeed(0)
+    this.ui.setMode('playing', { day: world.day, hasGame: true })
+    this.terrain.rebuild(world, { layer: this.ui.getLayer(), wireframe: world.config.wireframe })
+    this.ui.setGameHud(world)
+    this.ui.setStats(this.terrain.lastStats)
+    this.ui.updateFieldView(world, this.ui.getLayer())
+    this.ui.setInspection(null)
+    this.selected = null
+    this.persist()
+    this.sound.play('generate')
+    this.ui.toast('Monde créé — partie en pause.')
+  }
+
+  enterEditor() {
+    this.editor.enterEditor(this.worlds.hasGame)
+    this.time.setSpeed(0)
+    this.ui.setSpeed(0)
+    this.ui.setMode('editing', { hasGame: this.worlds.hasGame })
+    this.ui.applyWorldConfig(this.editor.draft)
+    this.preview()
+  }
+
+  cancelEditor() {
+    const { restored } = this.editor.cancel()
+    if (restored && this.worlds.restoreCommitted()) {
+      const world = this.worlds.world
+      this.ui.setMode('playing', { day: world.day, hasGame: true })
+      this.terrain.rebuild(world, { layer: this.ui.getLayer(), wireframe: world.config.wireframe })
+      this.ui.setGameHud(world)
+      this.ui.setStats(this.terrain.lastStats)
+      this.ui.updateFieldView(world, this.ui.getLayer())
+      this.ui.toast('Aperçu annulé — retour à la partie.')
+      return
+    }
+    this.ui.setMode('editing')
+  }
+
+  /** @param {string} tool */
+  setTool(tool) {
+    this.actions.setTool(tool)
+    this.ui.setTool(this.actions.tool)
+  }
+
+  /** @param {number} speed */
+  setSpeed(speed) {
+    if (!this.editor.playing || !this.worlds.world) return
+    this.time.setSpeed(speed)
+    this.ui.setSpeed(this.time.speed)
+  }
+
+  stepDay() {
+    if (!this.editor.playing || !this.worlds.world) return
+    this.advanceDay()
+  }
+
+  advanceDay() {
+    const world = this.worlds.world
+    if (!world) return
+    const before = world.stats().score
+    world.step()
+    this.terrain.refreshRainField()
+    this.ui.setGameHud(world)
+    this.ui.setStats(this.terrain.lastStats)
+    this.ui.updateFieldView(world, this.ui.getLayer())
+    if (this.selected) this.ui.setInspection(world.cellAt(this.selected.px, this.selected.pz))
+    this.sound.play('ui')
+    if (before < ECO_GOAL && world.stats().score >= ECO_GOAL) {
+      this.ui.toast('Objectif atteint ! La vie retrouve sa place.')
+    }
+  }
+
+  /** @param {string} layer */
+  setLayer(layer) {
+    this.terrain.setLayer(layer)
+    this.ui.updateFieldView(this.worlds.world, layer)
+    this.ui.setStats(this.terrain.lastStats)
+    this.persist()
+  }
+
+  /**
+   * @param {PointerEvent} event
+   */
+  onPointerUp(event) {
+    if (!this.pointerDown) return
+    const dx = event.clientX - this.pointerDown.x
+    const dy = event.clientY - this.pointerDown.y
+    const moved = Math.hypot(dx, dy) > 6
+    this.pointerDown = null
+    if (moved || !this.editor.playing || !this.worlds.world) return
+
+    const hit = this.scene.pickTerrain(event, this.terrain.mesh)
+    if (!hit) return
+    const world = this.worlds.world
+    const cell = world.cellAt(hit.x, hit.z)
+    this.selected = cell
+    this.ui.setInspection(cell)
+
+    if (this.actions.tool === 'inspect') {
+      this.sound.play('ui')
+      return
+    }
+
+    const result = this.actions.apply(world, hit.x, hit.z)
+    this.ui.toast(result.message, !result.ok)
+    if (result.ok) {
+      this.terrain.refreshColors()
+      this.ui.setGameHud(world)
+      this.ui.setInspection(world.cellAt(hit.x, hit.z))
+      this.sound.play('generate')
+    } else {
+      this.sound.play('ui')
+    }
   }
 
   togglePanel() {
@@ -76,6 +247,30 @@ export class GameManager {
     this.persist()
   }
 
+  exportConfig() {
+    const blob = new Blob([this.editor.exportJson()], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `gaia-config-${this.editor.draft.seed}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+    this.ui.toast('Réglages exportés.')
+  }
+
+  /** @param {File} file */
+  async importConfig(file) {
+    try {
+      const text = await file.text()
+      const draft = this.editor.importJson(text)
+      this.ui.applyWorldConfig(draft)
+      this.preview()
+      this.ui.toast('Réglages importés.')
+    } catch {
+      this.ui.toast('Fichier JSON invalide.', true)
+    }
+  }
+
   reset() {
     clearUserData(this.storage)
     const collapsed = readPanelCollapsed(this.storage, window.innerWidth)
@@ -85,10 +280,14 @@ export class GameManager {
       camera: DEFAULT_CAMERA,
       muted: false,
     }
+    this.editor = new EditorManager(this.user)
+    this.worlds = new WorldManager()
     this.sound.setMuted(false)
     this.ui.applyUserData(this.user)
     this.scene.resetCamera()
-    this.rebuild('generate')
+    this.ui.setMode('editing')
+    this.preview()
+    this.sound.play('generate')
   }
 
   /**
@@ -98,7 +297,15 @@ export class GameManager {
     if (action === 'randomSeed') this.randomSeed()
     if (action === 'toggleWireframe') {
       this.ui.toggleWireframe()
-      this.rebuild('ui')
+      if (this.editor.editing) this.preview()
+      else if (this.worlds.world) {
+        this.worlds.world.config.wireframe = this.ui.readWorldOptions().wireframe
+        this.terrain.rebuild(this.worlds.world, {
+          layer: this.ui.getLayer(),
+          wireframe: this.worlds.world.config.wireframe,
+        })
+      }
+      this.sound.play('ui')
     }
     if (action === 'togglePanel') this.togglePanel()
     if (action === 'toggleMute') this.toggleMute()
@@ -106,20 +313,49 @@ export class GameManager {
   }
 
   persist() {
-    const options = this.ui.readWorldOptions()
+    const options = this.editor.editing ? this.ui.readWorldOptions() : this.editor.draft
     saveUserData(this.storage, {
       ...options,
       muted: this.sound.muted,
       panelCollapsed: this.ui.isCollapsed(),
       camera: this.scene.getCameraState(),
+      layer: this.ui.getLayer(),
     })
   }
 
-  tick() {
+  /** @param {number} ts */
+  tick(ts) {
     if (!this.running) return
+    const dt = Math.min(0.1, (ts - this.lastTs) / 1000)
+    this.lastTs = ts
     this.frame += 1
-    this.terrain.update(this.frame)
+    const world = this.worlds.world
+    if (world) {
+      const layer = this.ui.getLayer()
+      const playSpeed = this.editor.playing ? this.time.speed : 0
+      // En jeu : suit la vitesse. En atelier : animation douce sur Naturel / Pluie.
+      const weatherScale = playSpeed > 0 ? playSpeed : layer === 'rain' || layer === 'natural' ? 0.85 : 0
+      if (weatherScale > 0) {
+        world.driftWeather(dt, weatherScale)
+        // Couleurs chaque frame (fluide) ; liseré un peu moins souvent (coût).
+        const outlineEvery = playSpeed >= 3 ? 1 : 2
+        this.terrain.refreshRainField({
+          colors: true,
+          outline: this.frame % outlineEvery === 0,
+        })
+        this.rainVisAcc += dt
+        if (this.rainVisAcc >= 0.2) {
+          this.rainVisAcc = 0
+          if (layer === 'rain' || layer === 'perlin') this.ui.updateFieldView(world, layer)
+          if (this.selected) this.ui.setInspection(world.cellAt(this.selected.px, this.selected.pz))
+        }
+      }
+    }
+    if (this.editor.playing) {
+      this.time.update(dt, () => this.advanceDay())
+    }
+    this.terrain.update(this.frame, dt)
     this.scene.render()
-    requestAnimationFrame(() => this.tick())
+    requestAnimationFrame((next) => this.tick(next))
   }
 }

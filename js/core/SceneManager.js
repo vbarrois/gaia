@@ -2,8 +2,8 @@ import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 
 export const DEFAULT_CAMERA = {
-  position: [62, 26, 52],
-  target: [0, 5, -6],
+  position: [140, 120, 155],
+  target: [0, 1, 0],
 }
 
 export class SceneManager {
@@ -13,38 +13,49 @@ export class SceneManager {
   constructor(host) {
     this.host = host
     this.scene = new THREE.Scene()
-    this.scene.background = new THREE.Color(0x0a1620)
-    this.scene.fog = new THREE.Fog(0x0a1620, 180, 420)
+    this.scene.background = new THREE.Color(0xb9c9c4)
+    this.scene.fog = new THREE.Fog(0xb9c9c4, 340, 610)
 
-    this.camera = new THREE.PerspectiveCamera(50, host.clientWidth / host.clientHeight, 0.1, 600)
+    this.camera = new THREE.PerspectiveCamera(39, 1, 0.5, 1000)
     this.camera.position.fromArray(DEFAULT_CAMERA.position)
 
-    this.renderer = new THREE.WebGLRenderer({ antialias: true })
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
-    this.renderer.setSize(host.clientWidth, host.clientHeight)
+    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false })
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.7))
     this.renderer.outputColorSpace = THREE.SRGBColorSpace
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping
-    this.renderer.toneMappingExposure = 1.25
-    host.appendChild(this.renderer.domElement)
+    this.renderer.toneMappingExposure = 1.08
+    this.renderer.domElement.setAttribute('aria-label', 'Terrain Gaïa en trois dimensions')
+    this.renderer.domElement.tabIndex = 0
+    // Keep HUD overlays above the canvas
+    host.prepend(this.renderer.domElement)
 
     this.controls = new OrbitControls(this.camera, this.renderer.domElement)
     this.controls.enableDamping = true
+    this.controls.dampingFactor = 0.09
     this.controls.target.fromArray(DEFAULT_CAMERA.target)
-    this.controls.maxPolarAngle = Math.PI * 0.46
-    this.controls.minDistance = 18
-    this.controls.maxDistance = 200
+    this.controls.maxPolarAngle = Math.PI * 0.47
+    this.controls.minPolarAngle = 0.035
+    this.controls.minDistance = 42
+    this.controls.maxDistance = 470
+    this.controls.screenSpacePanning = false
+    this.controls.rotateSpeed = 0.64
+    this.controls.zoomSpeed = 0.85
+    this.controls.panSpeed = 0.8
 
-    this.scene.add(new THREE.HemisphereLight(0xd7ebff, 0x4a3724, 1.05))
-    const sun = new THREE.DirectionalLight(0xfff3d0, 1.85)
-    sun.position.set(55, 90, 28)
+    this.scene.add(new THREE.HemisphereLight(0xeaf5df, 0x6a7463, 2.2))
+    const sun = new THREE.DirectionalLight(0xfff0cc, 2.5)
+    sun.position.set(-65, 110, 65)
     this.scene.add(sun)
-    const fill = new THREE.DirectionalLight(0x7ea8c9, 0.45)
-    fill.position.set(-40, 25, -50)
-    this.scene.add(fill)
-    this.scene.add(new THREE.AmbientLight(0x243830, 0.35))
+    this.scene.add(new THREE.AmbientLight(0x243830, 0.25))
+
+    this.raycaster = new THREE.Raycaster()
+    this.pointer = new THREE.Vector2()
 
     this.boundResize = () => this.resize()
     window.addEventListener('resize', this.boundResize)
+    this.observer = new ResizeObserver(() => this.resize())
+    this.observer.observe(host)
+    this.resize()
   }
 
   /**
@@ -58,14 +69,19 @@ export class SceneManager {
    * @param {{ position: number[], target: number[] } | null | undefined} camera
    */
   applyCamera(camera) {
-    if (!camera) return
+    if (!camera?.position || !camera?.target) return
     this.camera.position.fromArray(camera.position)
     this.controls.target.fromArray(camera.target)
     this.controls.update()
   }
 
-  resetCamera() {
-    this.applyCamera(DEFAULT_CAMERA)
+  resetCamera(top = false) {
+    const aspect = this.camera.aspect || 1
+    const d = 247 * Math.max(1, 0.92 / aspect)
+    this.controls.target.set(0, 1, 0)
+    if (top) this.camera.position.set(0, d, 0.1)
+    else this.camera.position.set(d * 0.56, d * 0.53, d * 0.635)
+    this.controls.update()
   }
 
   getCameraState() {
@@ -75,12 +91,28 @@ export class SceneManager {
     }
   }
 
+  /**
+   * @param {PointerEvent} event
+   * @param {THREE.Object3D} mesh
+   * @returns {{ x: number, y: number, z: number } | null}
+   */
+  pickTerrain(event, mesh) {
+    const rect = this.renderer.domElement.getBoundingClientRect()
+    this.pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1
+    this.pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1
+    this.raycaster.setFromCamera(this.pointer, this.camera)
+    const hits = this.raycaster.intersectObject(mesh, false)
+    if (!hits.length) return null
+    const p = hits[0].point
+    return { x: p.x, y: p.y, z: p.z }
+  }
+
   resize() {
-    const width = this.host.clientWidth
-    const height = this.host.clientHeight
-    this.camera.aspect = width / Math.max(height, 1)
+    const width = Math.max(1, Math.round(this.host.clientWidth))
+    const height = Math.max(1, Math.round(this.host.clientHeight))
+    this.camera.aspect = width / height
     this.camera.updateProjectionMatrix()
-    this.renderer.setSize(width, height)
+    this.renderer.setSize(width, height, false)
   }
 
   render() {

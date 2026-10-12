@@ -1,8 +1,10 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import { PANEL_STORAGE_KEY } from '../ui/panel.js'
+import { DEFAULTS } from '../world/config.js'
 import {
   USER_DEFAULTS,
+  USER_LIMITS,
   USER_STORAGE_KEY,
   clampUserNumber,
   clearUserData,
@@ -10,7 +12,6 @@ import {
   sanitizeUserData,
   sanitizeVec3,
   saveUserData,
-  USER_LIMITS,
 } from './userStore.js'
 
 function memoryStorage(initial = {}) {
@@ -32,7 +33,7 @@ function memoryStorage(initial = {}) {
 describe('clampUserNumber', () => {
   it('falls back on NaN and clamps to limits', () => {
     assert.equal(clampUserNumber('nope', USER_LIMITS.octaves, 5), 5)
-    assert.equal(clampUserNumber(99, USER_LIMITS.octaves, 5), 8)
+    assert.equal(clampUserNumber(99, USER_LIMITS.octaves, 5), 7)
     assert.equal(clampUserNumber(0, USER_LIMITS.octaves, 5), 1)
     assert.equal(clampUserNumber(3.9, USER_LIMITS.octaves, 5), 3)
   })
@@ -51,10 +52,9 @@ describe('sanitizeUserData', () => {
   it('returns defaults for junk input', () => {
     const empty = sanitizeUserData(null)
     assert.equal(empty.seed, USER_DEFAULTS.seed)
-    assert.equal(empty.hydrometry, USER_DEFAULTS.hydrometry)
-    assert.equal(empty.pollution, USER_DEFAULTS.pollution)
-    assert.equal(empty.cloudAltitude, USER_DEFAULTS.cloudAltitude)
-    assert.equal(empty.cloudCoverage, USER_DEFAULTS.cloudCoverage)
+    assert.equal(empty.amplitude, DEFAULTS.amplitude)
+    assert.equal(empty.pollution, DEFAULTS.pollution)
+    assert.equal(empty.falloff, DEFAULTS.falloff)
     assert.equal(empty.wireframe, false)
     assert.equal(empty.muted, false)
     assert.equal(empty.panelCollapsed, null)
@@ -67,24 +67,20 @@ describe('sanitizeUserData', () => {
       scale: 30,
       octaves: 4,
       persistence: 0.4,
-      lacunarity: 2,
       amplitude: 18,
-      warp: 0.2,
-      waterLevel: 0.1,
-      hydrometry: 0.8,
-      pollution: 0.9,
-      cloudAltitude: 40,
-      cloudCoverage: 0.6,
+      warp: 12,
+      water: 5,
+      falloff: 40,
+      resolution: 64,
+      pollution: 70,
       wireframe: true,
       muted: true,
       panelCollapsed: false,
       evil: 'nope',
     })
     assert.equal(data.seed, 42)
-    assert.equal(data.hydrometry, 0.8)
-    assert.equal(data.pollution, 0.9)
-    assert.equal(data.cloudAltitude, 40)
-    assert.equal(data.cloudCoverage, 0.6)
+    assert.equal(data.pollution, 70)
+    assert.equal(data.falloff, 40)
     assert.equal(data.wireframe, true)
     assert.equal(data.muted, true)
     assert.equal(data.panelCollapsed, false)
