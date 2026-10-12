@@ -1,6 +1,9 @@
 # Gaïa — brief agent (boucle de jeu)
 Injecte ce fichier tel quel dans le contexte de l’agent. C’est la spec de la **boucle**, pas un brief d’implémentation.
-Sauf demande explicite : **ne code pas**. Discute, précise, mets à jour `ROADMAP.md`. Le proto visuel est encore dans `vbarrois/allesla` (`gaia/`). Ce repo (`vbarrois/Gaia`) porte le suivi.
+Sauf demande explicite : **ne code pas**. Discute, précise, mets à jour `ROADMAP.md`.
+
+**Base code = ce repo** (`vbarrois/gaia`).  
+On casse l’hypothèse « proto encore dans AllesLa » parce que le plateau Gaya y est déjà porté ; AllesLa n’est plus la source à importer.
 ---
 ## Produit
 Jeu tour par tour, terre post-apocalyptique polluée. Une **source** jaillit encore. Le joueur reprend la main.
@@ -87,11 +90,11 @@ Formule v1 : le vent dirige aussi pollen et feu.
 - N’invente pas de combat, persos, inventaire, ville constructible, 40 cartes.
 - N’ouvre pas le SIG comme gameplay (pas de 12 jauges, pas de clic case à case en v0).
 - Ne mélange pas v0 et v1. Pollen / orage / feu = après le premier win/lose.
-- Ne clone pas `vbarrois/allesla` si le token ne le voit pas. L’import `gaia/` → racine de ce repo est **P0-1**, à faire depuis un environnement qui a **les deux** repos, ou depuis le portable.
+- Ne recentre pas le travail sur un import AllesLa : la base est ce repo.
 ## Si on te demande d’avancer
 1. Citer les IDs du `ROADMAP.md` (`P2-3`, `P6-5`, `Q1`…).
 2. Une décision figée ne se casse que si on écrit « on casse X parce que Y ».
-3. Prochaine action concrète hors spec : **P0-1** — importer le proto AllesLa à la racine de Gaia, **sans écraser** `ROADMAP.md` ni ce brief.
+3. Prochaine action concrète hors spec : voir `ROADMAP.md` § Prochaine action (vers P1 scénario « La Source »).
 ## Textes d’écran v0
 **Début**
 > La terre est sale. Une source jaillit encore.  
