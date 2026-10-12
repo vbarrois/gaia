@@ -13,8 +13,9 @@ export class SceneManager {
   constructor(host) {
     this.host = host
     this.scene = new THREE.Scene()
-    this.scene.background = new THREE.Color(0xb9c9c4)
-    this.scene.fog = new THREE.Fog(0xb9c9c4, 340, 610)
+    // Gaya: ciel / brouillard #bdcfc8 (le fond CSS du viewport reste #b9c9c4).
+    this.scene.background = new THREE.Color(0xbdcfc8)
+    this.scene.fog = new THREE.Fog(0xbdcfc8, 340, 610)
 
     this.camera = new THREE.PerspectiveCamera(39, 1, 0.5, 1000)
     this.camera.position.fromArray(DEFAULT_CAMERA.position)
@@ -46,7 +47,6 @@ export class SceneManager {
     const sun = new THREE.DirectionalLight(0xfff0cc, 2.5)
     sun.position.set(-65, 110, 65)
     this.scene.add(sun)
-    this.scene.add(new THREE.AmbientLight(0x243830, 0.25))
 
     this.raycaster = new THREE.Raycaster()
     this.pointer = new THREE.Vector2()

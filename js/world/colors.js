@@ -1,12 +1,13 @@
 import { RAIN_AT, SIZE } from './config.js'
 import { clamp, lerpColor, mix, smooth } from './math.js'
 
+/** Palette terrain Gaya (bounito.com/gaya). */
 const RGB = {
-  soil: [138, 112, 78],
-  grass: [92, 148, 72],
-  polluted: [140, 96, 132],
-  rock: [122, 118, 108],
-  shore: [168, 152, 118],
+  soil: [156, 143, 105],
+  grass: [91, 129, 67],
+  polluted: [149, 115, 155],
+  rock: [165, 164, 145],
+  shore: [207, 193, 151],
 }
 
 /**

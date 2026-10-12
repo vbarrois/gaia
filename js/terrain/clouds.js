@@ -135,13 +135,13 @@ function pushCloudTri(pos, nrm, col, ax, ay, az, bx, by, bz, cx, cy, cz, alpha) 
   nx /= len
   ny /= len
   nz /= len
-  const shade = 0.72 + alpha * 0.1
+  const shade = 0.88 + alpha * 0.08
   for (let i = 0; i < 3; i += 1) {
     const px = i === 0 ? ax : i === 1 ? bx : cx
     const py = i === 0 ? ay : i === 1 ? by : cy
     const pz = i === 0 ? az : i === 1 ? bz : cz
     pos.push(px, py, pz)
     nrm.push(nx, ny, nz)
-    col.push(shade, shade, Math.min(0.92, shade + 0.03))
+    col.push(shade, shade, Math.min(1, shade + 0.04))
   }
 }

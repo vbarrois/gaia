@@ -1,14 +1,18 @@
 import * as THREE from 'three'
-import { SIZE } from '../world/config.js'
+import { GRID, SIZE } from '../world/config.js'
+import { clamp } from '../world/math.js'
 import { buildRainOutline, buildWorldMesh } from '../world/colors.js'
 import { buildLowPolyClouds, generateCloudField } from './clouds.js'
+import { collectTreePlacements } from './trees.js'
 
 /**
- * Renders a World as low-poly terrain + water + clouds + rain outline + source marker.
+ * Renders a World as low-poly terrain + water + clouds + trees + rain outline + source.
  */
 export class TerrainManager {
   constructor() {
     this.group = new THREE.Group()
+    this._dummy = new THREE.Object3D()
+    this._treeColor = new THREE.Color()
 
     const terrainMaterial = new THREE.MeshStandardMaterial({
       vertexColors: true,
@@ -36,7 +40,7 @@ export class TerrainManager {
       vertexColors: true,
       flatShading: true,
       transparent: true,
-      opacity: 0.42,
+      opacity: 0.55,
       roughness: 1,
       metalness: 0,
       depthWrite: false,
@@ -49,26 +53,63 @@ export class TerrainManager {
     this.rainline = new THREE.LineSegments(
       new THREE.BufferGeometry(),
       new THREE.LineBasicMaterial({
-        color: 0xa8d4c8,
+        color: 0xd7f6ff,
         transparent: true,
-        opacity: 0.7,
+        opacity: 0.95,
         depthWrite: false,
+        depthTest: false,
       }),
     )
     this.rainline.renderOrder = 4
     this.rainline.visible = false
     this.group.add(this.rainline)
 
-    this.sourceMarker = new THREE.Mesh(
-      new THREE.SphereGeometry(1.4, 12, 10),
+    const treeMax = GRID * GRID
+    this.trunks = new THREE.InstancedMesh(
+      new THREE.CylinderGeometry(0.14, 0.22, 1.5, 5),
+      new THREE.MeshStandardMaterial({ color: 0x72654a, roughness: 1, flatShading: true }),
+      treeMax,
+    )
+    this.crowns = new THREE.InstancedMesh(
+      new THREE.ConeGeometry(1.0, 2.7, 6),
+      new THREE.MeshStandardMaterial({ roughness: 1, flatShading: true }),
+      treeMax,
+    )
+    this.tops = new THREE.InstancedMesh(
+      new THREE.ConeGeometry(0.72, 2.1, 6),
+      new THREE.MeshStandardMaterial({ roughness: 1, flatShading: true }),
+      treeMax,
+    )
+    for (const mesh of [this.trunks, this.crowns, this.tops]) {
+      mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage)
+      mesh.frustumCulled = false
+      mesh.count = 0
+      mesh.visible = false
+      this.group.add(mesh)
+    }
+
+    // Source Gaya : anneau #bbeef0 + balise #83d8df
+    this.sourceGroup = new THREE.Group()
+    this.sourceGroup.visible = false
+    const ring = new THREE.Mesh(
+      new THREE.TorusGeometry(2.1, 0.16, 6, 32),
+      new THREE.MeshBasicMaterial({ color: 0xbbeef0 }),
+    )
+    ring.rotation.x = -Math.PI / 2
+    ring.position.y = 0.7
+    const beacon = new THREE.Mesh(
+      new THREE.OctahedronGeometry(0.85),
       new THREE.MeshStandardMaterial({
-        color: 0x7dcea0,
-        emissive: 0x1a4030,
-        roughness: 0.45,
+        color: 0x83d8df,
+        emissive: 0x49828a,
+        emissiveIntensity: 0.35,
+        roughness: 0.3,
       }),
     )
-    this.sourceMarker.visible = false
-    this.group.add(this.sourceMarker)
+    beacon.position.y = 3
+    this.sourceGroup.add(ring, beacon)
+    this.sourceMarker = this.sourceGroup
+    this.group.add(this.sourceGroup)
 
     /** @type {string} */
     this.layer = 'natural'
@@ -109,14 +150,15 @@ export class TerrainManager {
 
     if (world.source) {
       const h = world.height(world.source.x, world.source.z)
-      this.sourceMarker.position.set(world.source.x, h + 2.2, world.source.z)
-      this.sourceMarker.visible = true
+      this.sourceGroup.position.set(world.source.x, h, world.source.z)
+      this.sourceGroup.visible = true
     } else {
-      this.sourceMarker.visible = false
+      this.sourceGroup.visible = false
     }
 
     this._cloudWireframe = wireframe
     const cloudStats = this.rebuildClouds()
+    const treeCount = this.rebuildTrees()
 
     this.applyLayerVisibility()
 
@@ -126,9 +168,46 @@ export class TerrainManager {
       score: world.stats().score,
       cloudTriangles: cloudStats.triangleCount,
       rainSegments: outline.length / 6,
+      treeCount,
       resolution: world.config.resolution,
     }
     return this.lastStats
+  }
+
+  /** Arbres low-poly Gaya (InstancedMesh troncs / couronnes). */
+  rebuildTrees() {
+    const world = this.world
+    if (!world) {
+      for (const mesh of [this.trunks, this.crowns, this.tops]) mesh.count = 0
+      return 0
+    }
+    const placements = collectTreePlacements(world)
+    let count = 0
+    for (const t of placements) {
+      const { x, y, z, s, r, veg } = t
+      this._dummy.rotation.set(0, r * 7, 0)
+      this._dummy.scale.set(s, s, s)
+      this._dummy.position.set(x, y + s * 0.72, z)
+      this._dummy.updateMatrix()
+      this.trunks.setMatrixAt(count, this._dummy.matrix)
+      this._dummy.position.y = y + s * 2
+      this._dummy.updateMatrix()
+      this.crowns.setMatrixAt(count, this._dummy.matrix)
+      this._dummy.position.y = y + s * 3.1
+      this._dummy.updateMatrix()
+      this.tops.setMatrixAt(count, this._dummy.matrix)
+      this._treeColor.setHSL(0.22 + r * 0.035, 0.2 + clamp(veg / 110) * 0.24, 0.25 + r * 0.15)
+      this.crowns.setColorAt(count, this._treeColor)
+      this._treeColor.multiplyScalar(1.17)
+      this.tops.setColorAt(count, this._treeColor)
+      count += 1
+    }
+    for (const mesh of [this.trunks, this.crowns, this.tops]) {
+      mesh.count = count
+      mesh.instanceMatrix.needsUpdate = true
+      if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true
+    }
+    return count
   }
 
   /**
@@ -173,9 +252,10 @@ export class TerrainManager {
     this.water.visible = natural
     this.rainline.visible = (natural || rain) && this.rainline.geometry.attributes.position?.count > 0
     this.clouds.visible = natural && this.clouds.geometry.attributes.position?.count > 0
-    if (this.sourceMarker) {
-      this.sourceMarker.visible = (natural || rain) && !!this.world?.source
+    for (const mesh of [this.trunks, this.crowns, this.tops]) {
+      mesh.visible = natural && mesh.count > 0
     }
+    this.sourceGroup.visible = (natural || rain) && !!this.world?.source
   }
 
   /**
@@ -209,6 +289,8 @@ export class TerrainManager {
     this.mesh.geometry.setAttribute('color', new THREE.BufferAttribute(data.colors, 3))
     this.mesh.geometry.attributes.color.needsUpdate = true
     this.mesh.material.wireframe = this.world.config.wireframe
+    const treeCount = this.rebuildTrees()
+    if (this.lastStats) this.lastStats.treeCount = treeCount
     this.applyLayerVisibility()
   }
 
@@ -240,8 +322,9 @@ export class TerrainManager {
     }
     // Pas de translation XZ : uniquement un léger souffle vertical.
     this.clouds.position.set(0, Math.sin(frame * 0.002) * 0.35, 0)
-    if (this.sourceMarker.visible) {
-      this.sourceMarker.position.y += Math.sin(frame * 0.04) * 0.002
+    if (this.sourceGroup.visible) {
+      const beacon = this.sourceGroup.children[1]
+      if (beacon) beacon.position.y = 3 + Math.sin(frame * 0.04) * 0.15
     }
   }
 }
