@@ -1,30 +1,41 @@
 extends Node
-## WorldManager — config + Perlin + palette + vent (lecture).
+## WorldManager — config + Perlin + palette + vent + éco (source / capillarité).
 ## Accès global : `WorldManager.xxx`
-## Vent : cible journalière discrète, angle courant lissé (tourne progressivement).
 
 signal config_changed(config: WorldConfig)
 signal seed_changed(seed: int)
 signal palette_changed(palette: TerrainPalette)
 signal wind_changed(wind: WindState)
+signal sources_changed()
+signal eco_changed()
+signal view_layer_changed(layer: int)
+
+enum ViewLayer { NATURAL, SOIL, MOISTURE, POLLUTION, FERTILITY }
 
 const DEFAULT_PALETTE := preload("res://resources/configs/terrain_palette.tres")
-## Vitesse de rotation vers la cible (plus haut = plus vite).
+const DEFAULT_SOURCE_INTENSITY := 4.0
 const WIND_TURN_SPEED := 1.35
 const WIND_STRENGTH_SPEED := 1.8
+const VIEW_LAYER_NAMES := ["Naturel", "Sol", "Humidité", "Pollution", "Fertilité"]
 
 var config: WorldConfig
 var palette: TerrainPalette
 var perlin: Perlin
 var generator: TerrainGenerator
-## Cible du jour (label HUD).
+## Overlay colorimétrique carte (1–5 / cycle).
+var view_layer: int = ViewLayer.NATURAL
+
 var wind: WindState = WindState.new()
-## Angle / force courants (visuels + traits).
 var wind_angle: float = -PI * 0.5
 var wind_angle_target: float = -PI * 0.5
 var wind_strength_f: float = 1.0
 var wind_strength_target: float = 1.0
 var wind_ready: bool = false
+
+## Sources d’eau actives.
+var sources: Array[WaterSource] = []
+## Overrides live : Vector2i → { soil, moisture, pollution }.
+var eco: Dictionary = {}
 
 
 func _ready() -> void:
@@ -37,13 +48,22 @@ func _ready() -> void:
 
 
 func _bind_time() -> void:
-	if not TimeManager.day_advanced.is_connected(_on_day_advanced):
-		TimeManager.day_advanced.connect(_on_day_advanced)
+	if not TimeManager.days_advanced.is_connected(_on_days_advanced):
+		TimeManager.days_advanced.connect(_on_days_advanced)
 	refresh_wind(true)
+	bootstrap_eco()
 
 
-func _on_day_advanced(_day: int) -> void:
+## Un seul tick vent + N steps éco + un eco_changed (évite le spam au tempo élevé).
+func _on_days_advanced(_day: int, count: int) -> void:
+	if count <= 0:
+		return
 	refresh_wind(false)
+	if generator == null or sources.is_empty():
+		return
+	for _i in count:
+		EcoSim.step_day(sources, eco, generator)
+	eco_changed.emit()
 
 
 func _process(delta: float) -> void:
@@ -53,7 +73,6 @@ func _process(delta: float) -> void:
 	var t_str := 1.0 - exp(-WIND_STRENGTH_SPEED * delta)
 	wind_angle = lerp_angle(wind_angle, wind_angle_target, t_ang)
 	wind_strength_f = lerpf(wind_strength_f, wind_strength_target, t_str)
-	# Visuels lisent wind_angle / wind_strength_f chaque frame.
 
 
 func apply_config(new_config: WorldConfig) -> void:
@@ -64,6 +83,7 @@ func apply_config(new_config: WorldConfig) -> void:
 	config_changed.emit(config)
 	seed_changed.emit(config.seed)
 	refresh_wind(true)
+	bootstrap_eco()
 	print("[WorldManager] seed=%d scale=%.1f water=%.1f" % [config.seed, config.scale, config.water_level])
 
 
@@ -88,7 +108,6 @@ func reseed(new_seed: int = -1) -> void:
 	ChunkManager.reload_all()
 
 
-## snap=true : aligne tout de suite (boot / reseed). false : tourne vers la nouvelle cible.
 func refresh_wind(snap: bool = false) -> void:
 	if config == null or perlin == null:
 		return
@@ -109,9 +128,107 @@ func wind_vector() -> Vector3:
 	return WindState.vector_from_angle(wind_angle)
 
 
-## Multiplicateur de vitesse des traits (≈ 1 faible → ≈ 2 fort), lissé.
 func wind_speed_factor() -> float:
 	return wind_strength_f
+
+
+func set_view_layer(layer: int) -> void:
+	var next := clampi(layer, ViewLayer.NATURAL, ViewLayer.FERTILITY)
+	if next == view_layer:
+		return
+	view_layer = next
+	view_layer_changed.emit(view_layer)
+	print("[WorldManager] couche = %s" % view_layer_name())
+
+
+func cycle_view_layer(delta: int = 1) -> void:
+	var count := VIEW_LAYER_NAMES.size()
+	set_view_layer(posmod(view_layer + delta, count))
+
+
+func view_layer_name() -> String:
+	return VIEW_LAYER_NAMES[view_layer]
+
+
+## Place 1 source + première capillarité.
+func bootstrap_eco() -> void:
+	if generator == null:
+		return
+	sources.clear()
+	eco.clear()
+	var tile := _find_spawn_source_tile()
+	sources.append(WaterSource.new(tile, DEFAULT_SOURCE_INTENSITY))
+	EcoSim.step_day(sources, eco, generator)
+	sources_changed.emit()
+	eco_changed.emit()
+	print("[WorldManager] source @ (%d,%d) intensity=%.1f radius=%d" % [
+		tile.x, tile.y, DEFAULT_SOURCE_INTENSITY, sources[0].radius()
+	])
+
+
+func step_eco() -> void:
+	if generator == null or sources.is_empty():
+		return
+	EcoSim.step_day(sources, eco, generator)
+	eco_changed.emit()
+
+
+## Chunks touchés par au moins une source (inject + auréole) — pour recolor ciblé.
+func eco_affected_chunk_coords() -> Array[Vector2i]:
+	var out: Array[Vector2i] = []
+	var seen: Dictionary = {}
+	if config == null:
+		return out
+	var size := config.chunk_size
+	for src in sources:
+		var reach := EcoSim.max_reach(src)
+		var t0 := Vector2i(src.tile.x - reach, src.tile.y - reach)
+		var t1 := Vector2i(src.tile.x + reach, src.tile.y + reach)
+		var c0 := Vector2i(floori(float(t0.x) / float(size)), floori(float(t0.y) / float(size)))
+		var c1 := Vector2i(floori(float(t1.x) / float(size)), floori(float(t1.y) / float(size)))
+		for cy in range(c0.y, c1.y + 1):
+			for cx in range(c0.x, c1.x + 1):
+				var c := Vector2i(cx, cy)
+				if seen.has(c):
+					continue
+				seen[c] = true
+				out.append(c)
+	return out
+
+
+func _find_spawn_source_tile() -> Vector2i:
+	# Cherche une tuile sèche près de l’origine (pas sous l’eau).
+	var best := Vector2i.ZERO
+	var best_score := -INF
+	for r in range(0, 24):
+		for dz in range(-r, r + 1):
+			for dx in range(-r, r + 1):
+				if maxi(absi(dx), absi(dz)) != r:
+					continue
+				var t := Vector2i(dx, dz)
+				var cell := generator.build_cell(t.x, t.y)
+				if cell.wet:
+					continue
+				var score := cell.height - float(r) * 0.35
+				if score > best_score:
+					best_score = score
+					best = t
+		if best_score > -INF and r >= 2:
+			break
+	return best
+
+
+func primary_source() -> WaterSource:
+	if sources.is_empty():
+		return null
+	return sources[0]
+
+
+func source_at(tile: Vector2i) -> WaterSource:
+	for s in sources:
+		if s.tile == tile:
+			return s
+	return null
 
 
 func height_at_tile(tile_x: int, tile_y: int) -> float:
@@ -119,4 +236,17 @@ func height_at_tile(tile_x: int, tile_y: int) -> float:
 
 
 func build_cell(tile_x: int, tile_y: int) -> CellData:
-	return generator.build_cell(tile_x, tile_y)
+	return get_cell(tile_x, tile_y)
+
+
+## Baseline générateur + overrides eco + flag source.
+func get_cell(tile_x: int, tile_y: int) -> CellData:
+	var cell := generator.build_cell(tile_x, tile_y)
+	var key := Vector2i(tile_x, tile_y)
+	if eco.has(key):
+		var e: Dictionary = eco[key]
+		cell.soil = float(e.get("soil", cell.soil))
+		cell.moisture = float(e.get("moisture", cell.moisture))
+		cell.pollution = float(e.get("pollution", cell.pollution))
+	cell.is_source = source_at(key) != null
+	return cell

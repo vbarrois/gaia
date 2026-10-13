@@ -60,6 +60,6 @@ func screen_to_tile(screen_pos: Vector2) -> Vector2i:
 
 
 ## Infos debug sous le curseur (biome, hauteur…).
-func peek_at_screen(screen_pos: Vector2) -> Dictionary:
+func peek_at_screen(screen_pos: Vector2, _snap_sources: bool = false) -> Dictionary:
 	var tile := screen_to_tile(screen_pos)
 	return ChunkManager.peek_tile(tile)

@@ -138,7 +138,7 @@ Priorité haute → basse. IDs stables pour les chats agent.
 
 | ID | Statut | Item |
 |---|---|---|
-| **P1-1** | **NEXT** | Carte départ : 1 source + oasis + hotspots pollution héritée |
+| **P1-1** | wip | Carte départ : 1 source + capillarité humidité (hotspots pollution later) |
 | P1-2 | todo | Ciblage **autour sources / lisière vivante** seulement |
 | P1-3 | todo | Sans joueur : oasis meurt en 4–5 saisons (lessivage et/ou sécheresse) |
 | P1-4 | todo | Règle naissance 2ᵉ source (sol propre + humide + veg) |

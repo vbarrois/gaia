@@ -9,9 +9,12 @@ var height: float = 0.0
 var biome: int = Biomes.Id.SOIL
 var wet: bool = false
 var pollution: float = 0.0
+## Quantité / qualité de terre (0–100).
 var soil: float = 50.0
 var moisture: float = 50.0
 var veg: float = 0.0
+## True si une WaterSource est sur cette tuile.
+var is_source: bool = false
 
 
 func _init(
@@ -27,6 +30,15 @@ func _init(
 	wet = biome == Biomes.Id.WATER or biome == Biomes.Id.DEEP_WATER
 
 
+## Fertilité dérivée : sol × humidité × (1 − pollution).
+func fertility() -> float:
+	return clampf(
+		soil * (moisture / 100.0) * (1.0 - pollution / 100.0),
+		0.0,
+		100.0
+	)
+
+
 func to_dict() -> Dictionary:
 	return {
 		"tile_x": tile_x,
@@ -38,4 +50,6 @@ func to_dict() -> Dictionary:
 		"soil": soil,
 		"moisture": moisture,
 		"veg": veg,
+		"fertility": fertility(),
+		"is_source": is_source,
 	}

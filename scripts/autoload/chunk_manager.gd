@@ -7,6 +7,8 @@ signal chunk_unloaded(coord: Vector2i)
 signal build_stats(pending: int, triangles: int)
 
 const CHUNK_SCENE_3D := preload("res://scenes/world/chunk_3d.tscn")
+## Intervalle mini entre recolors éco (temps réel) — évite le saccadé en ×10+.
+const ECO_MESH_INTERVAL_SEC := 0.45
 
 var draw_map: Node3D = null
 var chunks_root: Node3D = null
@@ -18,6 +20,16 @@ var _loaded: Dictionary = {}
 var _pool: Array[MapChunk3D] = []
 ## File d’attente de build (coord → desired lod resolution).
 var _pending: Dictionary = {}
+## Dernière frame où le chunk a été build (équité de recolor).
+var _built_frame: Dictionary = {}
+var _frame_id: int = 0
+## Rebuild immédiat (changement de couche / influence).
+var _mesh_dirty_now: bool = false
+## Recolor éco throttlé.
+var _eco_mesh_due: bool = false
+var _eco_mesh_timer: float = 0.0
+## Si non vide : ne recolorer que ces coords (éco). Vide = tous les chargés.
+var _rebuild_filter: Dictionary = {}
 var _last_center: Vector2i = Vector2i(999_999, 999_999)
 var _total_triangles: int = 0
 
@@ -46,7 +58,21 @@ func _prewarm_pool() -> void:
 		_pool.append(chunk)
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
+	_frame_id += 1
+	if _mesh_dirty_now:
+		_mesh_dirty_now = false
+		_eco_mesh_due = false
+		_eco_mesh_timer = 0.0
+		_queue_rebuilds(_rebuild_filter)
+		_rebuild_filter.clear()
+	elif _eco_mesh_due:
+		_eco_mesh_timer += delta
+		if _eco_mesh_timer >= ECO_MESH_INTERVAL_SEC:
+			_eco_mesh_due = false
+			_eco_mesh_timer = 0.0
+			_queue_rebuilds(_rebuild_filter)
+			_rebuild_filter.clear()
 	_drain_build_queue()
 
 
@@ -106,8 +132,12 @@ func _drain_build_queue() -> void:
 	var budget := WorldManager.config.build_budget_per_frame
 	var built := 0
 	var keys: Array = _pending.keys()
-	# Priorité : plus proches du centre d’abord.
+	# Équité : chunks les plus anciens d’abord, puis proximité caméra.
 	keys.sort_custom(func(a: Vector2i, b: Vector2i) -> bool:
+		var fa: int = int(_built_frame.get(a, 0))
+		var fb: int = int(_built_frame.get(b, 0))
+		if fa != fb:
+			return fa < fb
 		var da := maxi(absi(a.x - _last_center.x), absi(a.y - _last_center.y))
 		var db := maxi(absi(b.x - _last_center.x), absi(b.y - _last_center.y))
 		return da < db
@@ -134,6 +164,7 @@ func _build_or_rebuild(coord: Vector2i, resolution: int) -> void:
 	chunk.setup(coord, WorldManager.config, WorldManager.generator, terrain_material, resolution)
 	chunk.build()
 	_total_triangles += chunk.triangle_count
+	_built_frame[coord] = _frame_id
 
 
 func _acquire_chunk() -> MapChunk3D:
@@ -151,6 +182,7 @@ func _unload_chunk(coord: Vector2i) -> void:
 	_total_triangles -= chunk.triangle_count
 	chunk.recycle()
 	_loaded.erase(coord)
+	_built_frame.erase(coord)
 	_pool.append(chunk)
 	chunk_unloaded.emit(coord)
 
@@ -160,15 +192,50 @@ func _clear_all() -> void:
 	for coord in coords:
 		_unload_chunk(coord)
 	_pending.clear()
+	_built_frame.clear()
+	_mesh_dirty_now = false
+	_eco_mesh_due = false
+	_eco_mesh_timer = 0.0
+	_rebuild_filter.clear()
 	_total_triangles = 0
 	_last_center = Vector2i(999_999, 999_999)
 
 
 func reload_all() -> void:
 	_clear_all()
-	# Remettre le pool sous le nouveau root si besoin.
 	if draw_map and draw_map.has_method("get_focus"):
 		refresh_around(draw_map.get_focus())
+
+
+## Recolor immédiat de tous les chunks chargés (changement de couche / influence).
+func rebuild_loaded_meshes() -> void:
+	_rebuild_filter.clear()
+	_mesh_dirty_now = true
+
+
+## Recolor éco throttlé, limité aux chunks sous influence des sources.
+func request_eco_mesh_rebuild() -> void:
+	for c in WorldManager.eco_affected_chunk_coords():
+		_rebuild_filter[c] = true
+	_eco_mesh_due = true
+
+
+func _queue_rebuilds(filter: Dictionary) -> void:
+	if filter.is_empty():
+		for coord in _loaded.keys():
+			var chunk: MapChunk3D = _loaded[coord]
+			if chunk == null:
+				continue
+			_pending[coord] = chunk.lod_resolution
+	else:
+		for coord in filter.keys():
+			if not _loaded.has(coord):
+				continue
+			var chunk: MapChunk3D = _loaded[coord]
+			if chunk == null:
+				continue
+			_pending[coord] = chunk.lod_resolution
+	build_stats.emit(_pending.size(), _total_triangles)
 
 
 func get_chunk(coord: Vector2i) -> MapChunk3D:
@@ -189,11 +256,19 @@ func world_to_tile(world_xz: Vector3) -> Vector2i:
 
 
 func peek_tile(tile: Vector2i) -> Dictionary:
-	return WorldManager.build_cell(tile.x, tile.y).to_dict()
+	return WorldManager.get_cell(tile.x, tile.y).to_dict()
 
 
 func loaded_count() -> int:
 	return _loaded.size()
+
+
+## Coords des chunks actuellement streamés (copie).
+func loaded_coords() -> Array[Vector2i]:
+	var out: Array[Vector2i] = []
+	for c in _loaded.keys():
+		out.append(c as Vector2i)
+	return out
 
 
 func pending_count() -> int:

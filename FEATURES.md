@@ -24,10 +24,10 @@ Le suivi d’ordre d’implémentation : [`BACKLOG.md`](./BACKLOG.md) + [`ROADMA
 | F-G8b | **done** | Eau plane + fog `#bdcfc8` | port SceneManager |
 | F-G9 | wip | Config monde éditable (Resource `.tres`) | + mesh_resolution / LOD |
 | F-G10 | todo | TileSet art (PNG atlas) | remplace couleurs unies |
-| F-G11 | wip | Couches SIG empilées (5 layers brief) | Vent lecture done ; reste nuages/pol/humidité |
+| F-G11 | wip | Couches SIG | Vent + overlays sol/humidité/pollution/fertilité (1–5) |
 | F-G11b | **done** | Layer vent : boussole HUD + traits plan // tuiles | `WindState` / WindCompass |
-| F-G12 | todo | Données éco live (tour) | pollution, moisture, veg |
-| F-G13 | todo | Source + oasis de départ | placement + halo humidité |
+| F-G12 | wip | Données éco live (jour) | moisture via source ; soil/pol baseline |
+| F-G13 | **done** | Source + capillarité + fertilité dérivée | `WaterSource` / `EcoSim` |
 | F-G14 | todo | Hotspots pollution héritée | cicatrices, pas de bâtiments |
 | F-G15 | **done** | Arbres MultiMesh conditionnels (veg > 25) | `tree_scatter.gd` / chunk 3D |
 | F-G16 | todo | Lessivage pollution par pluie | vers oasis / aval |

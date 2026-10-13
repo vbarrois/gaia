@@ -23,17 +23,32 @@ static func build_chunk_mesh(
 	var colors: Array[Color] = []
 	colors.resize(cols * cols)
 
-	# Couleurs en espace monde continu (pas floori→tuile) : sinon marches de
-	# « biome » alignées sur les bords de chunks alors que la hauteur raccords OK.
+	# Couleurs : naturel / overlay colorimétrique (humidité = touche 3).
+	var layer := WorldManager.ViewLayer.NATURAL
+	if WorldManager:
+		layer = WorldManager.view_layer
 	for iz in cols:
 		for ix in cols:
 			var xz := _grid_xz(origin_tile, chunk_size, unit, ix, iz, resolution)
 			var h := generator.height_at_world(xz.x, xz.y)
-			var pol := generator.pollution_at_world(xz.x, xz.y)
-			var veg := 0.0 if h < water_level else clampf((100.0 - pol) * 0.31, 0.0, 100.0)
 			var idx := iz * cols + ix
 			heights[idx] = h
-			colors[idx] = TerrainColors.natural(h, water_level, pol, veg)
+			# Coin de tuile canonique (évite floori float sur bords de chunk).
+			var tx := origin_tile.x + int(floor(float(chunk_size) * float(ix) / float(resolution) + 0.0001))
+			var tz := origin_tile.y + int(floor(float(chunk_size) * float(iz) / float(resolution) + 0.0001))
+			if ix >= resolution:
+				tx = origin_tile.x + chunk_size - 1
+			if iz >= resolution:
+				tz = origin_tile.y + chunk_size - 1
+
+			if layer == WorldManager.ViewLayer.NATURAL:
+				var pol := generator.pollution_at_world(xz.x, xz.y)
+				var veg := 0.0 if h < water_level else clampf((100.0 - pol) * 0.31, 0.0, 100.0)
+				colors[idx] = TerrainColors.natural(h, water_level, pol, veg)
+			else:
+				var cell := WorldManager.get_cell(tx, tz)
+				cell.height = h
+				colors[idx] = TerrainColors.for_cell(layer, cell, water_level)
 
 	# Surface + 4 jupes (res quads × 2 tris chacune).
 	var surface_tris := resolution * resolution * 2

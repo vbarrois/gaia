@@ -110,10 +110,29 @@ func _unhandled_input(event: InputEvent) -> void:
 			WorldManager.reseed()
 		elif key.keycode == KEY_SPACE:
 			GameManager.toggle_pause()
+		elif key.keycode == KEY_MINUS or key.keycode == KEY_KP_SUBTRACT:
+			TimeManager.slower()
+		elif key.keycode == KEY_EQUAL or key.keycode == KEY_KP_ADD:
+			TimeManager.faster()
 		elif key.keycode == KEY_T:
 			map.reset_camera(true)
 		elif key.keycode == KEY_F:
 			map.reset_camera(false)
+		elif key.keycode == KEY_L:
+			WorldManager.cycle_view_layer(1)
+		elif key.keycode == KEY_1:
+			WorldManager.set_view_layer(WorldManager.ViewLayer.NATURAL)
+		elif key.keycode == KEY_2:
+			WorldManager.set_view_layer(WorldManager.ViewLayer.SOIL)
+		elif key.keycode == KEY_3:
+			WorldManager.set_view_layer(WorldManager.ViewLayer.MOISTURE)
+		elif key.keycode == KEY_4:
+			WorldManager.set_view_layer(WorldManager.ViewLayer.POLLUTION)
+		elif key.keycode == KEY_5:
+			WorldManager.set_view_layer(WorldManager.ViewLayer.FERTILITY)
+		elif key.keycode == KEY_G:
+			if map.has_method("toggle_chunk_grid"):
+				map.toggle_chunk_grid()
 
 
 func _begin_drag(mode: DragMode, pos: Vector2) -> void:
@@ -134,13 +153,15 @@ func _select_at(map: Node, screen_pos: Vector2) -> void:
 	var tile := Vector2i(int(data.get("tile_x", 0)), int(data.get("tile_y", 0)))
 	tile_selected.emit(tile, data)
 	print(
-		"[InputManager] select tile (%d,%d) biome=%s h=%.1f pol=%.0f"
+		"[InputManager] select (%d,%d) pol=%.0f moist=%.0f soil=%.0f fert=%.0f source=%s"
 		% [
 			tile.x,
 			tile.y,
-			Biomes.name_of(int(data.get("biome", 0))),
-			float(data.get("height", 0.0)),
 			float(data.get("pollution", 0.0)),
+			float(data.get("moisture", 0.0)),
+			float(data.get("soil", 0.0)),
+			float(data.get("fertility", 0.0)),
+			str(data.get("is_source", false)),
 		]
 	)
 

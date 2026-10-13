@@ -31,10 +31,14 @@ signal focus_changed(focus: Vector3)
 @export_group("Vent (lecture)")
 ## Nombre de traits sur le plan horizontal.
 @export_range(40, 220) var wind_streak_count: int = 110
-## Demi-taille du plan de traits autour du focus (unités monde).
+## Demi-taille de référence (à orbit ≈ 180) ; zoom/dézoom la scale.
 @export_range(40.0, 200.0) var wind_streak_extent: float = 95.0
 ## Hauteur du plan au-dessus de l’eau.
 @export_range(4.0, 80.0) var wind_streak_height: float = 32.0
+
+@export_group("Debug")
+## Affiche les bords des chunks (touche G).
+@export var show_chunk_grid: bool = true
 
 var focus: Vector3 = Vector3(0.0, 8.0, 0.0)
 var _yaw: float = 0.7
@@ -45,7 +49,12 @@ var _wind_streaks: MeshInstance3D
 var _streak_ox: PackedFloat32Array = PackedFloat32Array()
 var _streak_oz: PackedFloat32Array = PackedFloat32Array()
 var _streak_len: PackedFloat32Array = PackedFloat32Array()
+## Étendue actuellement appliquée au wrap (suit le zoom).
+var _streak_ext_live: float = 95.0
 var _rng := RandomNumberGenerator.new()
+var _source_root: Node3D
+var _chunk_grid: MeshInstance3D
+var _chunk_grid_dirty: bool = true
 
 
 func _ready() -> void:
@@ -60,12 +69,20 @@ func _ready() -> void:
 	_setup_environment()
 	_setup_water()
 	_setup_wind_streaks()
+	_setup_source_visuals()
+	_setup_chunk_grid()
 	_apply_camera_transform()
 
 	ChunkManager.bind_draw_map(self)
 	ChunkManager.refresh_around(focus)
 	WorldManager.wind_changed.connect(_on_wind_changed)
+	WorldManager.sources_changed.connect(_on_sources_changed)
+	WorldManager.view_layer_changed.connect(_on_view_layer_changed)
+	WorldManager.eco_changed.connect(_on_eco_changed)
+	ChunkManager.chunk_loaded.connect(func(_c): _chunk_grid_dirty = true)
+	ChunkManager.chunk_unloaded.connect(func(_c): _chunk_grid_dirty = true)
 
+	_on_sources_changed()
 	map_ready.emit()
 	GameManager.notify_map_ready(self)
 
@@ -75,6 +92,8 @@ func _process(delta: float) -> void:
 	water.global_position = Vector3(focus.x, config.water_level, focus.z)
 	ChunkManager.refresh_around(focus)
 	_update_wind_streaks(delta)
+	if _chunk_grid_dirty:
+		_rebuild_chunk_grid()
 
 
 func _setup_environment() -> void:
@@ -124,7 +143,8 @@ func _setup_wind_streaks() -> void:
 	_streak_ox.resize(wind_streak_count)
 	_streak_oz.resize(wind_streak_count)
 	_streak_len.resize(wind_streak_count)
-	var ext := wind_streak_extent
+	_streak_ext_live = _wind_extent_for_zoom()
+	var ext := _streak_ext_live
 	var strong := WorldManager.wind_speed_factor() >= 1.5
 	for i in wind_streak_count:
 		_streak_ox[i] = _rng.randf_range(-ext, ext)
@@ -137,8 +157,180 @@ func _on_wind_changed(_wind: WindState) -> void:
 	pass
 
 
+func _on_view_layer_changed(_layer: int) -> void:
+	# Couleurs vertex dans le mesh → rebuild sur place (pas reload_all).
+	ChunkManager.rebuild_loaded_meshes()
+
+
+func _on_eco_changed() -> void:
+	# Couche humidité / fertilité / etc. : recolor throttlé près des sources.
+	if WorldManager.view_layer != WorldManager.ViewLayer.NATURAL:
+		ChunkManager.request_eco_mesh_rebuild()
+
+
+func _setup_source_visuals() -> void:
+	_source_root = Node3D.new()
+	_source_root.name = "Sources"
+	add_child(_source_root)
+
+
+func _setup_chunk_grid() -> void:
+	_chunk_grid = MeshInstance3D.new()
+	_chunk_grid.name = "ChunkGrid"
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(0.95, 0.85, 0.25, 0.75)
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	_chunk_grid.material_override = mat
+	_chunk_grid.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_chunk_grid.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
+	add_child(_chunk_grid)
+	_chunk_grid_dirty = true
+
+
+func toggle_chunk_grid() -> void:
+	show_chunk_grid = not show_chunk_grid
+	_chunk_grid_dirty = true
+	print("[DrawMap3D] grille chunks = %s" % ("on" if show_chunk_grid else "off"))
+
+
+func _rebuild_chunk_grid() -> void:
+	_chunk_grid_dirty = false
+	if _chunk_grid == null or config == null:
+		return
+	if not show_chunk_grid:
+		_chunk_grid.mesh = null
+		_chunk_grid.visible = false
+		return
+	_chunk_grid.visible = true
+	var unit := config.world_unit_per_tile
+	var csize := config.chunk_size
+	var world_side := float(csize) * unit
+	var lift := 0.55
+	var verts := PackedVector3Array()
+	# Segments par bord pour suivre le relief (évite de plonger dans le terrain).
+	var segs := maxi(csize, 8)
+	for coord in ChunkManager.loaded_coords():
+		var x0 := float(coord.x) * world_side
+		var z0 := float(coord.y) * world_side
+		var x1 := x0 + world_side
+		var z1 := z0 + world_side
+		_append_chunk_edge(verts, x0, z0, x1, z0, segs, unit, lift)  # nord
+		_append_chunk_edge(verts, x0, z1, x1, z1, segs, unit, lift)  # sud
+		_append_chunk_edge(verts, x0, z0, x0, z1, segs, unit, lift)  # ouest
+		_append_chunk_edge(verts, x1, z0, x1, z1, segs, unit, lift)  # est
+	if verts.is_empty():
+		_chunk_grid.mesh = null
+		return
+	var arrays: Array = []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = verts
+	var mesh := ArrayMesh.new()
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_LINES, arrays)
+	_chunk_grid.mesh = mesh
+
+
+func _append_chunk_edge(
+	verts: PackedVector3Array,
+	ax: float, az: float, bx: float, bz: float,
+	segs: int, unit: float, lift: float
+) -> void:
+	for i in segs:
+		var t0 := float(i) / float(segs)
+		var t1 := float(i + 1) / float(segs)
+		var x0 := lerpf(ax, bx, t0)
+		var z0 := lerpf(az, bz, t0)
+		var x1 := lerpf(ax, bx, t1)
+		var z1 := lerpf(az, bz, t1)
+		var tx0 := floori(x0 / unit)
+		var tz0 := floori(z0 / unit)
+		var tx1 := floori(x1 / unit)
+		var tz1 := floori(z1 / unit)
+		var y0 := WorldManager.height_at_tile(tx0, tz0) + lift
+		var y1 := WorldManager.height_at_tile(tx1, tz1) + lift
+		verts.append(Vector3(x0, y0, z0))
+		verts.append(Vector3(x1, y1, z1))
+
+
+func _on_sources_changed() -> void:
+	_rebuild_source_markers()
+	# Centre la vue sur la source principale.
+	var primary := WorldManager.primary_source()
+	if primary:
+		var unit := config.world_unit_per_tile
+		set_focus(Vector3(
+			(float(primary.tile.x) + 0.5) * unit,
+			8.0,
+			(float(primary.tile.y) + 0.5) * unit
+		))
+
+
+func _rebuild_source_markers() -> void:
+	if _source_root == null:
+		return
+	for child in _source_root.get_children():
+		child.queue_free()
+	var unit := config.world_unit_per_tile
+	for src in WorldManager.sources:
+		var marker := _make_source_marker(src)
+		var h := WorldManager.height_at_tile(src.tile.x, src.tile.y)
+		marker.position = Vector3(
+			(float(src.tile.x) + 0.5) * unit,
+			h + 0.8,
+			(float(src.tile.y) + 0.5) * unit
+		)
+		_source_root.add_child(marker)
+
+
+func _make_source_marker(src: WaterSource) -> Node3D:
+	var root := Node3D.new()
+	root.name = "Source_%d_%d" % [src.tile.x, src.tile.y]
+	root.set_meta("source_tile", src.tile)
+
+	var ring := MeshInstance3D.new()
+	var torus := TorusMesh.new()
+	torus.inner_radius = 1.6
+	torus.outer_radius = 1.85
+	torus.rings = 8
+	torus.ring_segments = 24
+	ring.mesh = torus
+	var ring_mat := StandardMaterial3D.new()
+	ring_mat.albedo_color = Color(0.73, 0.93, 0.94)
+	ring_mat.emission_enabled = true
+	ring_mat.emission = Color(0.3, 0.55, 0.58)
+	ring_mat.emission_energy_multiplier = 0.6
+	ring.material_override = ring_mat
+	ring.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	root.add_child(ring)
+
+	var beacon := MeshInstance3D.new()
+	var oct := SphereMesh.new()
+	oct.radius = 0.55
+	oct.height = 1.1
+	beacon.mesh = oct
+	var bmat := StandardMaterial3D.new()
+	bmat.albedo_color = Color(0.51, 0.85, 0.87)
+	bmat.emission_enabled = true
+	bmat.emission = Color(0.29, 0.51, 0.55)
+	bmat.emission_energy_multiplier = 0.8
+	beacon.material_override = bmat
+	beacon.position = Vector3(0.0, 1.2, 0.0)
+	beacon.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	root.add_child(beacon)
+	return root
+
+
 func _plane_y() -> float:
 	return config.water_level + wind_streak_height
+
+
+## Demi-étendue du calque vent selon le zoom (suit le champ de vue).
+func _wind_extent_for_zoom() -> float:
+	# Réf. exportée ≈ orbit 180 ; near plus serré, far plus large.
+	var ref_orbit := 180.0
+	var scale := orbit_distance / ref_orbit
+	return clampf(wind_streak_extent * scale, 36.0, 360.0)
 
 
 ## Wrap toroïdal dans [-ext, ext].
@@ -155,7 +347,16 @@ func _update_wind_streaks(delta: float) -> void:
 	var speed := lerpf(9.0, 18.0, clampf(WorldManager.wind_speed_factor() - 1.0, 0.0, 1.0))
 	var len_mul := lerpf(1.0, 1.45, clampf(WorldManager.wind_speed_factor() - 1.0, 0.0, 1.0))
 	var y := _plane_y()
-	var ext := wind_streak_extent
+	var ext := _wind_extent_for_zoom()
+	# Rescale les offsets si le zoom a changé l’étendue (évite trou / densité bizarre).
+	if _streak_ext_live > 0.01 and not is_equal_approx(ext, _streak_ext_live):
+		var s := ext / _streak_ext_live
+		for i in _streak_ox.size():
+			_streak_ox[i] *= s
+			_streak_oz[i] *= s
+	_streak_ext_live = ext
+	# Traits un peu plus longs au dézoom pour rester lisibles.
+	var zoom_len := clampf(ext / wind_streak_extent, 0.65, 2.4)
 	var dx := dir.x * speed * delta
 	var dz := dir.z * speed * delta
 
@@ -167,7 +368,7 @@ func _update_wind_streaks(delta: float) -> void:
 		_streak_ox[i] = _wrap_extent(_streak_ox[i] + dx, ext)
 		_streak_oz[i] = _wrap_extent(_streak_oz[i] + dz, ext)
 		var p := Vector3(focus.x + _streak_ox[i], y, focus.z + _streak_oz[i])
-		var half := half_base * (_streak_len[i] * len_mul / 1.2)
+		var half := half_base * (_streak_len[i] * len_mul * zoom_len / 1.2)
 		verts[i * 2] = p - half
 		verts[i * 2 + 1] = p + half
 
@@ -276,6 +477,5 @@ func screen_to_ground(screen_pos: Vector2) -> Vector3:
 	return from + dir * t
 
 
-func peek_at_screen(screen_pos: Vector2) -> Dictionary:
-	var tile := screen_to_tile(screen_pos)
-	return ChunkManager.peek_tile(tile)
+func peek_at_screen(screen_pos: Vector2, _snap_sources: bool = false) -> Dictionary:
+	return ChunkManager.peek_tile(screen_to_tile(screen_pos))

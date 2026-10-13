@@ -38,8 +38,6 @@ func is_playing() -> bool:
 
 func toggle_pause() -> void:
 	if state == State.PLAYING:
-		set_state(State.PAUSED)
 		TimeManager.set_paused(true)
 	elif state == State.PAUSED:
-		set_state(State.PLAYING)
 		TimeManager.set_paused(false)

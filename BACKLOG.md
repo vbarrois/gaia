@@ -32,8 +32,9 @@ Priorité : **haute → basse**. Statuts : `todo` · `wip` · `done` · `blocked
 | G1-1 | todo | Art / texture optionnelle (vertex color OK) | G0-6 |
 | G1-2 | **done** | Hauteur / relief 3D lisible | G0-6 |
 | G1-3 | todo | Layer pollution (héritage + hotspots) | G1-2 |
-| G1-4 | todo | Layer humidité | G1-2 |
-| G1-5 | todo | Placement Source + oasis (marker 3D) | G0-6 |
+| G1-4 | wip | Layer humidité (capillarité source done ; overlay plein map later) | G1-5 |
+| G1-5 | **done** | Placement Source + marker 3D + rayon debug clic | G0-6 |
+| G1-5b | **done** | Capillarité journalière + fertilité dérivée | G1-5 |
 | G1-6 | **done** | Arbres MultiMesh conditionnels (veg > 25) | G0-6 |
 | G1-7 | todo | Mini-carte / HUD non-debug | G0-5 |
 | G1-8 | todo | Persistance seed + camera (ConfigFile / user://) | G0-2 |
