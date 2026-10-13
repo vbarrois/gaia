@@ -1,48 +1,58 @@
 # Gaïa
 
-Atelier du vivant : sculpte un relief Perlin, crée un monde, puis restaure-le (énergie, eau, compost, écoscore).
+Des siècles de surconsommation ont laissé une terre morte. Une source jaillit encore.  
+Anticipe le vent et la pluie, dépollue, plante, fais naître de nouvelles sources — la nature reprend ses droits.
 
-Pages : https://vbarrois.github.io/gaia/
+**Runtime cible : [Godot 4.7](https://godotengine.org/).**  
+Le proto **HTML + JS / Three.js** reste dans le repo le temps de la migration (nettoyage à la fin).
 
-## Règles de dev
+| Doc | Pour quoi |
+|---|---|
+| [`BRIEF-LOOP.md`](./BRIEF-LOOP.md) | Spec boucle de jeu (produit) |
+| [`ROADMAP.md`](./ROADMAP.md) | Suivi produit + état des lieux |
+| [`FEATURES.md`](./FEATURES.md) | Inventaire features |
+| [`BACKLOG.md`](./BACKLOG.md) | Backlog technique Godot (`G-*`) |
+| [`docs/godot/ARCHITECTURE.md`](./docs/godot/ARCHITECTURE.md) | Arborescence & managers (débutants) |
 
-- **HTML + JavaScript** (modules ES, pas de bundler / framework)
-- **localStorage** pour la config monde, caméra, panneau, mute — **pas** la progression de partie
-- Three.js via CDN (import map)
-- Logique testable isolée des managers Three.js
+---
 
-## Découpage
+## Godot (recommandé)
+
+1. Ouvrir le dossier du repo dans **Godot 4.7**.
+2. Scène principale : `scenes/main/main.tscn` (déjà configurée).
+3. **F5** pour lancer.
+
+### Contrôles proto (vue 3D)
+
+| Input | Effet |
+|---|---|
+| Clic gauche + drag | Orbit |
+| Clic droit + drag | Pan |
+| Molette | Zoom |
+| WASD / flèches | Déplacer le focus |
+| Clic gauche court | Inspecter la tuile |
+| `T` / `F` | Vue dessus / reset caméra |
+| `R` | Nouvelle seed |
+| `Espace` | Pause |
+
+### Arborescence (résumé)
 
 ```
-js/
-├── app.js
-├── core/
-│   ├── GameManager.js      # orchestration
-│   ├── EditorManager.js    # editing / playing, presets, import-export
-│   ├── ActionManager.js    # outils pinceau
-│   ├── TimeManager.js      # pause / 1× / 3× / +1 jour
-│   ├── SceneManager.js     # caméra, lumières, picking
-│   ├── InputManager.js
-│   └── SoundManager.js
-├── world/
-│   ├── World.js            # grille éco 36×36 (GayaCore)
-│   ├── WorldManager.js
-│   ├── config.js           # DEFAULTS, PRESETS, sanitize
-│   ├── perlinGaya.js
-│   ├── actions.js
-│   ├── colors.js           # couches + mesh
-│   └── math.js
-├── terrain/
-│   ├── TerrainManager.js   # mesh, eau, nuages, source
-│   └── …                   # utilitaires Perlin/sol/nuages historiques
-├── ui/
-│   ├── UiManager.js
-│   └── panel.js
-└── store/
-    └── userStore.js
+scenes/main/          → point d’entrée (DrawMap3D)
+scenes/world/         → DrawMap3D + Chunk3D (+ legacy 2D)
+scripts/autoload/     → Game / World / Chunk / Input / Time
+scripts/world/        → Perlin, biomes, config, cellules
+scripts/map/          → mesh builder, couleurs, chunks 3D
+resources/configs/    → WorldConfig .tres (tweaks + LOD)
 ```
 
-## Lancer
+Détail : [`docs/godot/ARCHITECTURE.md`](./docs/godot/ARCHITECTURE.md).
+
+---
+
+## Proto JS (legacy)
+
+Atelier relief Perlin + mini-simu éco temps réel (outil R&D, pas la boucle cible).
 
 ```bash
 python3 -m http.server 4173 --bind 127.0.0.1
@@ -50,28 +60,22 @@ python3 -m http.server 4173 --bind 127.0.0.1
 
 Ouvrir [http://127.0.0.1:4173](http://127.0.0.1:4173).
 
-## Tests
-
 ```bash
 node --test js/**/*.test.js
 ```
 
-## Boucle de jeu
+Découpage JS historique : `js/core/`, `js/world/`, `js/terrain/`, `js/ui/`.
 
-1. **Aperçu** — curseurs / presets sculptent le terrain en direct.
-2. **Créer ce monde** — démarre une partie en pause.
-3. **Actions** — Observer, Dépolluer, Arroser, Enrichir, Planter, Puiser (clic court).
-4. **Temps** — II / 1× / 3× / +1 jour (1 jour ≈ 8 s à 1×).
-5. Objectif : **écoscore ≥ 65**.
+> **Atelier ≠ boucle.** L’atelier (curseurs, presets, écoscore soft) est un outil plateau / R&D.  
+> La boucle v0 (chapitre Oasis, tours, deck) est dans le brief — elle se construit **en Godot**.  
+> Pas de villes ni de routes : les humains ont disparu ; la pollution est un héritage, le climat est l’antagoniste.
 
-## Contrôles
+---
 
-| Action | Effet |
-| --- | --- |
-| Glisser | Caméra |
-| Clic court | Observer / agir |
-| Couche (select) | Naturel, relief, Perlin, pluie, pollution, humidité, fertilité |
-| `R` | Nouvelle graine (éditeur) |
-| `W` | Fil de fer |
-| `P` | Panneau réduit / ouvert |
-| `M` | Son on / off |
+## Décisions figées
+
+1. Le SIG est le **plateau**, jamais le jeu.  
+2. Base code = **ce repo** (plus d’import AllesLa obligatoire).  
+3. Godot = runtime cible ; JS = référence jusqu’à parité.  
+4. **Pas de villes / routes** (humains disparus) — pollution héritée + climat.  
+5. `BRIEF-LOOP.md` + `ROADMAP.md` / `BACKLOG.md` / `FEATURES.md` = suivi.

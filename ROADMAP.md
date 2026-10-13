@@ -6,26 +6,59 @@ Ce fichier = **suivi produit** (pas du code). Sauf demande explicite : discuter 
 **Compétence non négociable :** voir la météo, agir *avant*.  
 **Contrat :** Boun = SIG (montre & déplace) · Vincent = partie (1 geste → résolution → seuil).
 
+**Docs companion :**
+| Fichier | Rôle |
+|---|---|
+| [`FEATURES.md`](./FEATURES.md) | Inventaire capacités (Godot + legacy JS) |
+| [`BACKLOG.md`](./BACKLOG.md) | Backlog technique Godot (`G-*`) |
+| [`docs/godot/ARCHITECTURE.md`](./docs/godot/ARCHITECTURE.md) | Arborescence & managers Godot |
+
 ---
 
-## 1. État des lieux (2026-10-12)
+## 0. Migration Godot (2026-10-13) — **piste active**
+
+Décision : le **jeu cible** se construit en **Godot 4.7** dans ce repo.  
+Le proto **JS / Three.js** reste tant que la parité n’est pas là ; cleanup JS = fin de migration (`G4-2`).
+
+| Domaine | Statut Godot | Note |
+|---|---|---|
+| Socle projet + arborescence | **done** | `scenes/`, `scripts/`, Autoloads |
+| Managers | **done** | Game, World, Chunk, Input, Time |
+| DrawMap + Perlin | **done** | port `perlinGaya` |
+| Terrain **3D** chunké | **done** | mesh flat + orbit + eau + fog |
+| Opti streaming | **done** | pool, LOD, budget build / frame |
+| Chunks + map extensible | **done** | streaming `load_radius` — fit reconquête |
+| Simu éco / boucle brief | todo | oasis, lessivage, sources |
+| Cleanup `js/` | frozen | pas avant parité |
+
+**Next tech :** `G0-10` (feel F5) → `G1-5` (Source + oasis marker) — détail dans [`BACKLOG.md`](./BACKLOG.md).
+
+```
+G0 socle + 3D ✓ → G1 SIG (source/arbres) → G2 chapitre Oasis → G3 tour/deck
+                                         ↘ aligné P1–P5 produit
+```
+
+---
+
+## 1. État des lieux proto JS (2026-10-12)
 
 **Base code = ce repo** (`vbarrois/gaia`).  
 On casse « importer depuis AllesLa » parce que le plateau Gaya est déjà ici. AllesLa n’est plus une dépendance de suivi.
 
-### 1.1 Ce que le repo *est* aujourd’hui
+### 1.1 Ce que le repo *était* / reste en JS (référence)
 
 Prototype **atelier Gaya** + mini-simu éco temps réel (pas tour par tour).  
-Pages : https://vbarrois.github.io/gaia/ · local `python3 -m http.server 4173`.
+Pages : https://vbarrois.github.io/gaia/ · local `python3 -m http.server 4173`.  
+**Nouveau runtime :** ouvrir `project.godot` dans Godot 4.7 → F5.
 
 | Domaine | En place | Écart vs brief boucle v0 |
 |---|---|---|
-| **Produit** | Atelier relief + « créer un monde » + restaurer à la main | Pas de scénario « La Source », pas de tours 8–12, pas de deck |
+| **Produit** | Atelier relief + « créer un monde » + restaurer à la main | Pas de chapitre Oasis, pas de tours 8–12, pas de deck |
 | **Compétence** | Réagir *pendant* le temps (1× / 3× / +1 j) | Brief : annonce J/J+1 → **1 action** → monde résout |
 | **SIG / lecture** | Couches exclusives (select) | Brief : 5 layers **empilées** ; isolate = debug |
-| **Plateau** | Relief procédural, eau, source, arbres, nuages | Pas de 2 villes + route + lac scénarisé ; ciblage libre case |
+| **Plateau** | Relief procédural, eau, source, arbres, nuages | Pas de lisière ciblable, pas de naissance de source, pas de lessivage tour |
 
-### 1.2 Features techniques & UX — OK
+### 1.2 Features techniques & UX — OK (JS)
 
 | Feature | Détail | Fichiers clés |
 |---|---|---|
@@ -38,12 +71,13 @@ Pages : https://vbarrois.github.io/gaia/ · local `python3 -m http.server 4173`.
 | Pluie visuelle | Champ dérivant, liseré, couche Pluie, mini-carte | `World.driftWeather`, `buildRainOutline` |
 | Couches affichage | Naturel, relief, Perlin, pluie, pollution, humidité, fertilité | `colors.js` + select UI |
 | Actions pinceau | Observer, dépolluer, arroser, enrichir, planter, puiser | `actions.js`, `ActionManager`, `World.act` |
+| Input Gaya | Tap vs drag, curseur zone (rayon), popup détail sélection | `InputManager`, `TerrainManager.setBrushCursor`, `#selectionPopup` |
 | Ressources | Énergie / eau / compost / déchets isolés | `World` + HUD |
 | Temps | Pause / 1× / 3× / +1 jour (~8 s/jour) | `TimeManager` |
 | Persistance | Config + caméra + mute + couche — **pas** la progression | `userStore` |
 | Tests | Suites Node (`node --test`) | `*.test.js` |
 
-### 1.3 Gameplay actuel (boucle Gaya) — ce que le joueur fait
+### 1.3 Gameplay actuel (boucle Gaya JS) — ce que le joueur fait
 
 ```
 Aperçu (atelier) → Créer ce monde (pause)
@@ -61,9 +95,9 @@ Aperçu (atelier) → Créer ce monde (pause)
 | Source ponctuelle + humidité oasis | Oui (pas enjeu win/lose dédié) |
 | Win / lose narratifs brief | **Non** (objectif écoscore soft) |
 | Deck / main 3 / 1 action par tour | **Non** |
-| Villes, route, lessivage vers lac | **Non** |
-| Cartouche de pluie | **Non** |
-| Espèces sol vs lac distinctes | **Non** (un seul « Planter ») |
+| Naissance de nouvelles sources | **Non** |
+| Lessivage tour-par-tour vers oasis | **Non** |
+| Villes / routes | **Abandonné produit** (voir §1.5) |
 
 ### 1.4 Code legacy / hors boucle
 
@@ -77,11 +111,14 @@ Aperçu (atelier) → Créer ce monde (pause)
 1. Le SIG est le **plateau**, jamais le jeu.  
 2. v0 avant v1 (pollen / orage / feu).  
 3. **Base code = ce repo** (plus d’import AllesLa obligatoire).  
-4. `BRIEF-LOOP.md` + `ROADMAP.md` restent la doc de suivi (ne pas les écraser sans intention).
+4. `BRIEF-LOOP.md` + `ROADMAP.md` restent la doc de suivi (ne pas les écraser sans intention).  
+5. **Godot = runtime cible** ; JS = référence jusqu’à parité.  
+6. **On casse villes + routes** parce que les humains ont détruit puis disparu : pollution = héritage ; antagoniste = climat.  
+7. **On casse le scénario Source→Lac urbain** parce que la progression = **étendre l’oasis** et **faire naître des sources**, pas sauver un lac de villes.
 
 ---
 
-## 2. Backlog (vers la boucle brief)
+## 2. Backlog (vers la boucle brief — reconquête)
 
 Priorité haute → basse. IDs stables pour les chats agent.
 
@@ -91,28 +128,31 @@ Priorité haute → basse. IDs stables pour les chats agent.
 |---|---|---|---|
 | P0-1 | **done** | ~~Import AllesLa~~ — annulé : base = repo actuel | — |
 | P0-2 | done | Inventaire plateau actuel vs boucle brief → §1 de ce fichier | — |
-| **P0-3** | **NEXT** | README : atelier ≠ boucle ; liens brief + roadmap | — |
+| P0-3 | **done** | README : atelier ≠ boucle ; liens brief + roadmap + Godot | — |
 | P0-4 | done | **Q3** tranché : base visuelle / code = **ce repo** | — |
+| P0-5 | wip | Socle Godot jouable (DrawMap + chunks) — voir `G0-*` | — |
+| P0-6 | **done** | Brief reconquête sans villes/routes (2026-10-13) | — |
 
-### P1 — Scénario « La Source »
+### P1 — Chapitre « Oasis » (tenir + 2ᵉ source)
 
 | ID | Statut | Item |
 |---|---|---|
-| P1-1 | todo | Carte figée : Source (haut), 2 villes + 1 route, Lac (bas) |
-| P1-2 | todo | Ciblage **Source / Chemin / Lac** seulement |
-| P1-3 | todo | Sans joueur : source meurt en 4–5 saisons |
-| P1-4 | todo | Seuils win/lose (phrases du brief) |
+| **P1-1** | **NEXT** | Carte départ : 1 source + oasis + hotspots pollution héritée |
+| P1-2 | todo | Ciblage **autour sources / lisière vivante** seulement |
+| P1-3 | todo | Sans joueur : oasis meurt en 4–5 saisons (lessivage et/ou sécheresse) |
+| P1-4 | todo | Règle naissance 2ᵉ source (sol propre + humide + veg) |
+| P1-5 | todo | Seuils win/lose (phrases du brief) |
 
 ### P2 — Météo tour par tour
 
 | ID | Statut | Item |
 |---|---|---|
-| P2-1 | todo | Vent : 4 dirs × faible/fort ; déplace nuages + pollution air/route |
-| P2-2 | todo | Pluie : sec / fine / forte |
+| P2-1 | todo | Vent : 4 dirs × faible/fort ; déplace nuages (+ dérive poussière légère) |
+| P2-2 | todo | Pluie : sec / fine / forte (humidifie + lessive) |
 | **P2-3** | todo | Panneau **J + J+1** (bandeau une ligne) |
-| P2-4 | todo | Résolution : vent → pluie → eau → espèces → ré-émission |
+| P2-4 | todo | Résolution : vent → pluie → sol → arbres → check sources |
 
-*Réemploi possible :* champs pluie/vent/nuages actuels → à **rebrancher** sur annonce + résolution tour, pas sur le tick continu atelier.
+*Réemploi possible :* champs pluie/vent/nuages JS → à **rebrancher** sur annonce + résolution tour (Godot), pas sur le tick continu atelier.
 
 ### P3 — Tour joueur & deck
 
@@ -121,32 +161,32 @@ Priorité haute → basse. IDs stables pour les chats agent.
 | P3-1 | todo | 8–12 saisons (**Q1**) |
 | P3-2 | todo | Main 3, petite pioche (**Q2**) |
 | P3-3 | todo | Une action, puis le monde joue |
-| P3-4 | todo | Espèce **sol** |
-| P3-5 | todo | Espèce **lac** |
-| P3-6 | todo | **Cartouche pluie** (×1 deck) (**Q5**) |
+| P3-4 | todo | Action **Planter** (filtre sol) |
+| P3-5 | todo | Action **Dépolluer** |
+| P3-6 | todo | Action **Forcer pluie** (×1 deck) (**Q5**) |
 
-*Réemploi partiel :* `plant` / `clean` / coûts énergie ≠ modèle brief ; à remplacer ou mapper, pas à « étendre » aveuglément.
+*Réemploi partiel :* `plant` / `clean` JS ≠ modèle brief ; mapper vers planter / dépolluer, pas étendre aveuglément.
 
 ### P4 — Lecture (5 layers empilées)
 
 | ID | Statut | Item | vs actuel |
 |---|---|---|---|
-| P4-1 | todo | Nuages J + J+1 pointillés | Couche pluie exclusive |
-| P4-2 | todo | Pollution terre/eau + route ruban | Couche pollution case |
-| P4-3 | todo | Végétation = espèces joueur | Arbres veg auto |
+| P4-1 | todo | Nuages J + J+1 pointillés | Couche pluie exclusive (JS) |
+| P4-2 | todo | Pollution héritée + hotspots | Couche pollution case |
+| P4-3 | todo | Végétation = arbres / filtres joueur | Arbres veg auto |
 | P4-4 | todo | Humidité sobre | Couche moisture |
 | P4-5 | todo | Vent = panneau + flèches | Vent interne, pas UI |
-| P4-6 | todo | Plateau : relief, source, villes, route, lac | Relief + source |
+| P4-6 | todo | Plateau : relief, sources, oasis, cicatrices | Relief + source |
 | P4-7 | todo | Isolate = debug | Select exclusif |
 
 ### P5 — Textes & validation v0
 
 | ID | Statut | Item |
 |---|---|---|
-| P5-1 | todo | Intro 3 lignes |
+| P5-1 | todo | Intro 3 lignes (brief) |
 | P5-2 | todo | Tour = bandeau |
-| P5-3 | todo | Win : *« La source est claire. Le lac respire. »* |
-| P5-4 | todo | Lose : *« La source a bu la ville. »* |
+| P5-3 | todo | Win : *« Une seconde source jaillit. La terre respire. »* |
+| P5-4 | todo | Lose : *« La dernière source a bu le ciel sale. »* |
 | P5-5 | todo | **Done quand** une partie se gagne **et** une se perd |
 
 ### P6 — Gelé (hors v0)
@@ -154,10 +194,11 @@ Priorité haute → basse. IDs stables pour les chats agent.
 | ID | Statut | Item |
 |---|---|---|
 | P6-1 | frozen | Température, types de sol overlay, 3 calques air/sol/eau, risque/case |
-| P6-2 | frozen | Combat, persos, inventaire, ville constructible, gros deck |
+| P6-2 | frozen | Combat, persos, inventaire, villes, routes, reconstruction humaine, gros deck |
 | P6-3 | frozen | Atelier comme gameplay principal |
 | P6-4 | frozen | Micro-gestion case à case en v0 |
 | **P6-5** | frozen | v1 pollen / orage / feu — après P5-5 |
+| P6-6 | frozen | Espèce lac / bassins naturels distincts — après v0 si besoin |
 
 ### v1 (après P5-5)
 
@@ -165,13 +206,14 @@ Priorité haute → basse. IDs stables pour les chats agent.
 |---|---|---|
 | V1-1 | frozen | Pollinisation + vent |
 | V1-2 | frozen | Feu (orage + bois sec) ; humidité = garde-feu |
-| V1-3 | frozen | Orage au panneau ; lose toujours par pollution |
+| V1-3 | frozen | Orage au panneau ; lose toujours par pollution / sécheresse |
+| V1-4 | frozen | Front de reconquête 3ᵉ+ sources |
 
 ---
 
 ## 3. Backlog « dette / polish » du proto actuel (hors boucle)
 
-Utile si on garde Gaya comme plateau SIG — **ne bloque pas** P1–P5.
+Utile si on garde Gaya JS comme plateau SIG — **ne bloque pas** P1–P5.
 
 | ID | Item |
 |---|---|
@@ -189,22 +231,25 @@ Utile si on garde Gaya comme plateau SIG — **ne bloque pas** P1–P5.
 | ID | Question | Impact |
 |---|---|---|
 | **Q1** | 8, 10 ou 12 saisons ? | P3-1 |
-| **Q2** | Ratio deck sol / lac / cartouche ? | P3-2 |
+| **Q2** | Ratio deck planter / dépolluer / pluie ? | P3-2 |
 | Q3 | ~~Base visuelle Gaya vs AllesLa ?~~ | **Tranché : ce repo** |
-| **Q4** | Chemin = route seule ou + lit d’eau ? | P1-2, P2 |
-| **Q5** | Cartouche : zones Source/Chemin/Lac seulement ou libre ? | P3-6 |
+| Q4 | ~~Chemin = route / lit d’eau ?~~ | **Caduc** (plus de route) |
+| **Q5** | Forcer pluie : lisière seulement ou zone libre sous nuages ? | P3-6 |
+| **Q6** | Seuils exacts naissance 2ᵉ source (pollution / humidité / veg) ? | P1-4 |
 
-Décision figée : **« on casse X parce que Y »** (écrit ici).
+Décision figée : **« on casse X parce que Y »** (écrit §1.5).
 
 ---
 
 ## 5. Prochaine action
 
-**P0-3** — Mettre le README au clair (atelier ≠ boucle, liens brief/roadmap).  
-Ensuite enjeu produit : **P1-1** — scénario carte « La Source » (villes, route, lac) sur la base actuelle.
+**Piste active = Godot** (`G0-6`) : valider le proto DrawMap+chunks dans l’éditeur.  
+Ensuite enjeu produit : **P1-1 / G2-1** — chapitre Oasis (1 source, hotspots, pas de villes).
 
 ```
-P0 (socle ✓ / README) → P1 (carte Source) → P2 (météo tour) → P3 (deck)
-                           ↘ P4 (layers) ↗
-                                    → P5 (textes + win/lose) → stop v0
+P0 (socle + Godot G0 + brief ✓) → G1 SIG → P1/G2 (Oasis + 2ᵉ source)
+                                      ↘ P2 (météo) → P3 (deck)
+                                      ↘ P4 (layers) ↗
+                                               → P5 (textes + win/lose) → stop v0
+                                                    → G4 cleanup JS
 ```

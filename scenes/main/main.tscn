@@ -1,0 +1,10 @@
+[gd_scene load_steps=3 format=3 uid="uid://bmaingaia00001"]
+
+[ext_resource type="PackedScene" path="res://scenes/world/draw_map_3d.tscn" id="1_map"]
+[ext_resource type="PackedScene" path="res://scenes/ui/debug_hud.tscn" id="2_hud"]
+
+[node name="Main" type="Node"]
+
+[node name="DrawMap3D" parent="." instance=ExtResource("1_map")]
+
+[node name="DebugHud" parent="." instance=ExtResource("2_hud")]

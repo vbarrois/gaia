@@ -1,4 +1,9 @@
-node_modules/
+# Godot 4+ specific ignores
+.godot/
+/android/
+*.translation
+export_presets.cfg
+
+# OS / editor
 .DS_Store
-*.log
-.cache/
+*~

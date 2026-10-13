@@ -1,0 +1,30 @@
+[gd_scene load_steps=4 format=3 uid="uid://cyl3brgtameoe"]
+
+[ext_resource type="Script" path="res://scripts/map/draw_map_3d.gd" id="1_draw"]
+[ext_resource type="Resource" path="res://resources/configs/world_defaults.tres" id="2_cfg"]
+[ext_resource type="Resource" path="res://resources/configs/terrain_palette.tres" id="3_pal"]
+
+[node name="DrawMap3D" type="Node3D"]
+script = ExtResource("1_draw")
+config = ExtResource("2_cfg")
+palette = ExtResource("3_pal")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.707107, -0.5, 0.5, 0, 0.707107, 0.707107, -0.707107, -0.5, 0.5, -65, 110, 65)
+light_color = Color(1, 0.941, 0.8, 1)
+light_energy = 1.05
+shadow_enabled = false
+
+[node name="Chunks" type="Node3D" parent="."]
+
+[node name="Water" type="MeshInstance3D" parent="."]
+
+[node name="CameraPivot" type="Node3D" parent="."]
+
+[node name="Camera3D" type="Camera3D" parent="CameraPivot"]
+fov = 39.0
+near = 0.5
+far = 1000.0
+current = true
