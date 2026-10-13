@@ -99,6 +99,7 @@ Tweaks : `resources/configs/world_defaults.tres` → `mesh_resolution`, `lod_*`,
 | Feature | Où |
 |---|---|
 | Arbres MultiMesh | `chunk_3d` + `tree_scatter.gd` (**done**) |
+| Vent lecture | boussole HUD + traits animés plan // tuiles (**done**) |
 | Source / oasis marker | enfant de `DrawMap3D` |
 | Layers SIG | 2ᵉ surface / overlay |
 | Shadows proches | activer `cast_shadow` sur LOD near seulement |

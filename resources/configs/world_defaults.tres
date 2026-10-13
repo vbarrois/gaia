@@ -1,27 +1,6 @@
-[gd_resource type="Resource" script_class="WorldConfig" load_steps=2 format=3 uid="uid://bworldcfggaia1"]
+[gd_resource type="Resource" script_class="WorldConfig" format=3 uid="uid://ck2e3jjwjf8oc"]
 
-[ext_resource type="Script" path="res://scripts/world/world_config.gd" id="1_cfg"]
+[ext_resource type="Script" uid="uid://crh2bgt3lovgb" path="res://scripts/world/world_config.gd" id="1_cfg"]
 
 [resource]
 script = ExtResource("1_cfg")
-seed = 7429
-amplitude = 26.0
-scale = 57.0
-octaves = 4
-persistence = 0.48
-water_level = 3.0
-falloff = 72.0
-warp = 12.0
-pollution = 58.0
-chunk_size = 16
-load_radius = 3
-tile_size = 16
-world_unit_per_tile = 3.33
-mesh_resolution = 16
-enable_mesh_lod = false
-lod_near = 1
-lod_mid = 2
-lod_far = 3
-skirt_depth = 28.0
-build_budget_per_frame = 2
-chunk_pool_prewarm = 8

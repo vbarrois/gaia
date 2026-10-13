@@ -24,7 +24,8 @@ Le suivi d’ordre d’implémentation : [`BACKLOG.md`](./BACKLOG.md) + [`ROADMA
 | F-G8b | **done** | Eau plane + fog `#bdcfc8` | port SceneManager |
 | F-G9 | wip | Config monde éditable (Resource `.tres`) | + mesh_resolution / LOD |
 | F-G10 | todo | TileSet art (PNG atlas) | remplace couleurs unies |
-| F-G11 | todo | Couches SIG empilées (5 layers brief) | Nuages, pollution, veg, humidité, vent |
+| F-G11 | wip | Couches SIG empilées (5 layers brief) | Vent lecture done ; reste nuages/pol/humidité |
+| F-G11b | **done** | Layer vent : boussole HUD + traits plan // tuiles | `WindState` / WindCompass |
 | F-G12 | todo | Données éco live (tour) | pollution, moisture, veg |
 | F-G13 | todo | Source + oasis de départ | placement + halo humidité |
 | F-G14 | todo | Hotspots pollution héritée | cicatrices, pas de bâtiments |

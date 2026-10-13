@@ -1,30 +1,29 @@
-[gd_scene load_steps=4 format=3 uid="uid://cyl3brgtameoe"]
+[gd_scene format=3 uid="uid://cyl3brgtameoe"]
 
-[ext_resource type="Script" path="res://scripts/map/draw_map_3d.gd" id="1_draw"]
-[ext_resource type="Resource" path="res://resources/configs/world_defaults.tres" id="2_cfg"]
-[ext_resource type="Resource" path="res://resources/configs/terrain_palette.tres" id="3_pal"]
+[ext_resource type="Script" uid="uid://ytr6iuyffx4a" path="res://scripts/map/draw_map_3d.gd" id="1_draw"]
+[ext_resource type="Resource" uid="uid://ck2e3jjwjf8oc" path="res://resources/configs/world_defaults.tres" id="2_cfg"]
+[ext_resource type="Resource" uid="uid://cvoxq5e8puiwu" path="res://resources/configs/terrain_palette.tres" id="3_pal"]
 
-[node name="DrawMap3D" type="Node3D"]
+[node name="DrawMap3D" type="Node3D" unique_id=1266739096]
 script = ExtResource("1_draw")
 config = ExtResource("2_cfg")
 palette = ExtResource("3_pal")
 
-[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1969130277]
 
-[node name="Sun" type="DirectionalLight3D" parent="."]
+[node name="Sun" type="DirectionalLight3D" parent="." unique_id=1795885457]
 transform = Transform3D(0.707107, -0.5, 0.5, 0, 0.707107, 0.707107, -0.707107, -0.5, 0.5, -65, 110, 65)
 light_color = Color(1, 0.941, 0.8, 1)
 light_energy = 0.72
-shadow_enabled = false
 
-[node name="Chunks" type="Node3D" parent="."]
+[node name="Chunks" type="Node3D" parent="." unique_id=648037147]
 
-[node name="Water" type="MeshInstance3D" parent="."]
+[node name="Water" type="MeshInstance3D" parent="." unique_id=768217754]
 
-[node name="CameraPivot" type="Node3D" parent="."]
+[node name="CameraPivot" type="Node3D" parent="." unique_id=411864322]
 
-[node name="Camera3D" type="Camera3D" parent="CameraPivot"]
+[node name="Camera3D" type="Camera3D" parent="CameraPivot" unique_id=522851416]
+current = true
 fov = 39.0
 near = 0.5
 far = 1000.0
-current = true

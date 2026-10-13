@@ -1,7 +1,9 @@
 extends CanvasLayer
 ## HUD debug — seed, chunks, LOD queue, triangles, tuile.
+## Vent : boussole coin haut-droit (pas de flèches plein plateau).
 
 @onready var label: Label = $Margin/Label
+@onready var wind_label: Label = %WindLabel
 
 var _hover: Dictionary = {}
 var _pending: int = 0
@@ -12,6 +14,7 @@ func _ready() -> void:
 	InputManager.tile_hovered.connect(_on_hover)
 	InputManager.tile_selected.connect(_on_select)
 	WorldManager.seed_changed.connect(func(_s): _refresh())
+	WorldManager.wind_changed.connect(func(_w): _refresh())
 	ChunkManager.chunk_loaded.connect(func(_c): _refresh())
 	ChunkManager.chunk_unloaded.connect(func(_c): _refresh())
 	ChunkManager.build_stats.connect(_on_build_stats)
@@ -63,3 +66,5 @@ func _refresh() -> void:
 			]
 		)
 	label.text = "\n".join(lines)
+	if wind_label:
+		wind_label.text = WorldManager.wind.label() if WorldManager.wind else "—"

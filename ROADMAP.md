@@ -176,7 +176,7 @@ Priorité haute → basse. IDs stables pour les chats agent.
 | P4-2 | todo | Pollution héritée + hotspots | Couche pollution case |
 | P4-3 | todo | Végétation = arbres / filtres joueur | Arbres veg auto |
 | P4-4 | todo | Humidité sobre | Couche moisture |
-| P4-5 | todo | Vent = panneau + flèches | Vent interne, pas UI |
+| P4-5 | **done** | Vent = boussole HUD + traits animés (4 dirs × force) | `WindState` + WindCompass |
 | P4-6 | todo | Plateau : relief, sources, oasis, cicatrices | Relief + source |
 | P4-7 | todo | Isolate = debug | Select exclusif |
 

@@ -38,6 +38,7 @@ Priorité : **haute → basse**. Statuts : `todo` · `wip` · `done` · `blocked
 | G1-7 | todo | Mini-carte / HUD non-debug | G0-5 |
 | G1-8 | todo | Persistance seed + camera (ConfigFile / user://) | G0-2 |
 | G1-9 | todo | Shadows LOD near seulement | G0-7 |
+| G1-10 | **done** | Layer vent lecture : boussole HUD + traits plan // tuiles | G0-6 |
 
 ---
 
@@ -60,7 +61,7 @@ Priorité : **haute → basse**. Statuts : `todo` · `wip` · `done` · `blocked
 | ID | Statut | Item | Dépend |
 |---|---|---|---|
 | G3-1 | todo | `TurnManager` : annonce → action → résolution | G2 |
-| G3-2 | todo | Vent 4 dirs × faible/fort (+ dérive poussière légère) | G3-1 |
+| G3-2 | todo | Vent résolution tour (+ dérive poussière) — modèle lecture = G1-10 | G3-1 |
 | G3-3 | todo | Pluie sec / fine / forte + bandeau J/J+1 | G3-1 |
 | G3-4 | todo | Deck + main 3 + 1 action | G3-1 |
 | G3-5 | todo | Deck Semis (Mousses / Arbustes / Mycélium) + forcer pluie | G3-4 |
