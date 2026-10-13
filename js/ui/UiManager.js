@@ -317,6 +317,7 @@ export class UiManager {
    * @param {import('../world/World.js').Cell | null} cell
    */
   setInspection(cell) {
+    const popup = document.getElementById('selectionPopup')
     if (!cell) {
       byId('noSelection').hidden = false
       byId('tileFields').hidden = true
@@ -324,12 +325,15 @@ export class UiManager {
       byId('tileHeight').textContent = ''
       const mobile = document.getElementById('mobileInspect')
       if (mobile) mobile.textContent = ''
+      popup?.classList.add('hidden')
       return
     }
+    const title = cell.wet ? 'Plan d’eau' : `Sol · ${cell.x + 1}, ${cell.z + 1}`
+    const meta = `Alt. ${cell.h.toFixed(1)}${cell.rains ? ' · pluie' : ''}`
     byId('noSelection').hidden = true
     byId('tileFields').hidden = false
-    byId('tileTitle').textContent = cell.wet ? 'Plan d’eau' : `Case ${cell.x},${cell.z}`
-    byId('tileHeight').textContent = `h ${cell.h.toFixed(1)}${cell.rains ? ' · pluie' : ''}`
+    byId('tileTitle').textContent = title
+    byId('tileHeight').textContent = meta
     byId('val-pollution').textContent = `${Math.round(cell.pollution)}`
     byId('val-moisture').textContent = `${Math.round(cell.moisture)}`
     byId('val-soil').textContent = `${Math.round(cell.soil)}`
@@ -342,7 +346,16 @@ export class UiManager {
     if (mobile) {
       mobile.textContent = cell.wet
         ? 'Plan d’eau'
-        : `Pol ${Math.round(cell.pollution)} · Hum ${Math.round(cell.moisture)} · Sol ${Math.round(cell.soil)} · Vég ${Math.round(cell.veg)}`
+        : `Zone ${cell.x + 1},${cell.z + 1} · pollution ${Math.round(cell.pollution)} · humidité ${Math.round(cell.moisture)}`
+    }
+    if (popup) {
+      popup.classList.remove('hidden')
+      byId('popupTitle').textContent = title
+      byId('popupMeta').textContent = meta
+      byId('popup-pollution').textContent = `${Math.round(cell.pollution)}`
+      byId('popup-moisture').textContent = `${Math.round(cell.moisture)}`
+      byId('popup-soil').textContent = `${Math.round(cell.soil)}`
+      byId('popup-veg').textContent = `${Math.round(cell.veg)}`
     }
   }
 

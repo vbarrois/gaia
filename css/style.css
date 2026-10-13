@@ -12,8 +12,15 @@
 @media(max-width:900px){.viewtools select{max-width:148px}.fieldview{left:10px;bottom:54px;padding:5px}.fieldview canvas{width:112px;height:112px}.fieldview figcaption{font-size:8px}.playing .fieldview{bottom:122px}}
 
 /* Gaïa host tweaks */
-.viewport>canvas{position:absolute;inset:0;width:100%!important;height:100%!important;display:block;outline:0;touch-action:none;z-index:0}
-.viewport>.viewtag,.viewport>.viewtools,.viewport>.viewfooter,.viewport>.viewlegend,.viewport>.compass,.viewport>.actiondock,.viewport>.toast,.viewport>.loading,.viewport>.fieldview,.viewport>.mobilehud,.viewport>.mobiletime,.viewport>.mobilebrush,.viewport>.mobile-inspect,.viewport>.offline{z-index:2}
+.viewport>canvas{position:absolute;inset:0;width:100%!important;height:100%!important;display:block;outline:0;touch-action:none;z-index:0;cursor:crosshair}
+.viewport>.viewtag,.viewport>.viewtools,.viewport>.viewfooter,.viewport>.viewlegend,.viewport>.compass,.viewport>.actiondock,.viewport>.toast,.viewport>.loading,.viewport>.fieldview,.viewport>.mobilehud,.viewport>.mobiletime,.viewport>.mobilebrush,.viewport>.mobile-inspect,.viewport>.offline,.viewport>.selection-popup{z-index:2}
+.selection-popup{position:absolute;left:18px;top:96px;min-width:168px;max-width:220px;padding:10px 12px;border-radius:12px;background:#10241ee8;border:1px solid #6d8c5166;color:#eef4e9;pointer-events:none;box-shadow:0 8px 24px #14271c33}
+.selection-popup strong{display:block;font-size:12px;font-weight:600;margin-bottom:2px}
+.selection-popup #popupMeta{display:block;font-size:10px;color:#9cb1a8;margin-bottom:8px}
+.selection-popup .popup-grid{display:grid;grid-template-columns:1fr auto;gap:4px 10px;font-size:10px;color:#bdceba}
+.selection-popup .popup-grid b{color:var(--accent);font-weight:550;font-variant-numeric:tabular-nums;text-align:right}
+body:not(.playing) .selection-popup{display:none!important}
+@media(max-width:900px){.selection-popup{left:10px;top:88px;min-width:140px;padding:8px 10px}}
 #toggleMute{font-size:14px;line-height:1}
 body.sidebar-collapsed .sidebar{display:none}
 body.sidebar-collapsed .workspace{grid-template-columns:1fr}

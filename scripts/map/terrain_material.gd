@@ -6,9 +6,10 @@ extends RefCounted
 static func make_terrain() -> StandardMaterial3D:
 	var mat := StandardMaterial3D.new()
 	mat.vertex_color_use_as_albedo = true
-	mat.roughness = 1.0
+	mat.roughness = 0.92
 	mat.metallic = 0.02
 	mat.specular_mode = BaseMaterial3D.SPECULAR_DISABLED
+	# Normales lissées dans le mesh → shading doux (moins de facettes agressives).
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_PER_PIXEL
 	return mat
 

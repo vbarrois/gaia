@@ -114,7 +114,8 @@ Aperçu (atelier) → Créer ce monde (pause)
 4. `BRIEF-LOOP.md` + `ROADMAP.md` restent la doc de suivi (ne pas les écraser sans intention).  
 5. **Godot = runtime cible** ; JS = référence jusqu’à parité.  
 6. **On casse villes + routes** parce que les humains ont détruit puis disparu : pollution = héritage ; antagoniste = climat.  
-7. **On casse le scénario Source→Lac urbain** parce que la progression = **étendre l’oasis** et **faire naître des sources**, pas sauver un lac de villes.
+7. **On casse le scénario Source→Lac urbain** parce que la progression = **étendre l’oasis** et **faire naître des sources**, pas sauver un lac de villes.  
+8. **On casse Planter / Dépolluer séparés** parce que la dépollution = **phytoremédiation** : famille **Semis** à variantes (Mousses / Arbustes / Mycélium) ; pluie forcée hors famille.
 
 ---
 
@@ -161,11 +162,11 @@ Priorité haute → basse. IDs stables pour les chats agent.
 | P3-1 | todo | 8–12 saisons (**Q1**) |
 | P3-2 | todo | Main 3, petite pioche (**Q2**) |
 | P3-3 | todo | Une action, puis le monde joue |
-| P3-4 | todo | Action **Planter** (filtre sol) |
-| P3-5 | todo | Action **Dépolluer** |
-| P3-6 | todo | Action **Forcer pluie** (×1 deck) (**Q5**) |
+| P3-4 | todo | Deck **Semis** (phyto) : variantes **Mousses** / **Arbustes** / **Mycélium** |
+| P3-5 | cancelled | ~~Action Dépolluer~~ — fusionné dans P3-4 (famille Semis) |
+| P3-6 | todo | Action **Forcer pluie** (×1 deck, hors famille Semis) (**Q5**) |
 
-*Réemploi partiel :* `plant` / `clean` JS ≠ modèle brief ; mapper vers planter / dépolluer, pas étendre aveuglément.
+*Réemploi partiel :* `plant` / `clean` JS ≠ modèle brief ; mapper vers **Semis** (variantes), pas étendre le pinceau atelier.
 
 ### P4 — Lecture (5 layers empilées)
 
@@ -231,7 +232,7 @@ Utile si on garde Gaya JS comme plateau SIG — **ne bloque pas** P1–P5.
 | ID | Question | Impact |
 |---|---|---|
 | **Q1** | 8, 10 ou 12 saisons ? | P3-1 |
-| **Q2** | Ratio deck planter / dépolluer / pluie ? | P3-2 |
+| **Q2** | Ratio deck Semis (Mousses / Arbustes / Mycélium) vs forcer pluie (×1) ? | P3-2 |
 | Q3 | ~~Base visuelle Gaya vs AllesLa ?~~ | **Tranché : ce repo** |
 | Q4 | ~~Chemin = route / lit d’eau ?~~ | **Caduc** (plus de route) |
 | **Q5** | Forcer pluie : lisière seulement ou zone libre sous nuages ? | P3-6 |

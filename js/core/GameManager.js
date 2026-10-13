@@ -37,7 +37,10 @@ export class GameManager {
       onImportFile: (file) => this.importConfig(file),
       onDefaults: () => this.resetDefaults(),
       onTool: (tool) => this.setTool(tool),
-      onBrush: (radius) => this.actions.setRadius(radius),
+      onBrush: (radius) => {
+        this.actions.setRadius(radius)
+        this.refreshBrushCursor()
+      },
       onSpeed: (speed) => this.setSpeed(speed),
       onStepDay: () => this.stepDay(),
       onLayer: (layer) => this.setLayer(layer),
@@ -45,22 +48,29 @@ export class GameManager {
       onResetView: () => this.scene.resetCamera(false),
       onHelp: (open) => this.ui.setHelpOpen(open),
     })
-    this.input = new InputManager((action) => this.handleAction(action))
+    this.input = new InputManager({
+      onAction: (action) => this.handleAction(action),
+      onTap: (event) => {
+        this.sound.unlock()
+        this.handleTap(event)
+      },
+      onHover: (event) => this.handleHover(event),
+      onHoverEnd: () => {
+        if (this.selected) this.refreshBrushCursor()
+        else this.terrain.clearBrushCursor()
+      },
+    })
     this.frame = 0
     this.running = false
     this.lastTs = 0
     this.rainVisAcc = 0
     /** @type {import('../world/World.js').Cell | null} */
     this.selected = null
-    this.pointerDown = null
+    /** @type {{ x: number, z: number } | null} */
+    this.hoverPoint = null
 
     this.scene.add(this.terrain.group)
     this.scene.controls.addEventListener('end', () => this.persist())
-    this.scene.renderer.domElement.addEventListener('pointerdown', (event) => {
-      this.sound.unlock()
-      this.pointerDown = { x: event.clientX, y: event.clientY, event }
-    })
-    this.scene.renderer.domElement.addEventListener('pointerup', (event) => this.onPointerUp(event))
   }
 
   start() {
@@ -70,6 +80,7 @@ export class GameManager {
     else this.scene.resetCamera(false)
     this.ui.bind()
     this.input.bind()
+    this.input.bindCanvas(this.scene.renderer.domElement)
     this.ui.setTool(this.actions.tool)
     this.ui.setSpeed(this.time.speed)
     this.ui.setMode('editing')
@@ -78,6 +89,23 @@ export class GameManager {
     this.running = true
     this.lastTs = performance.now()
     this.tick(this.lastTs)
+  }
+
+  pickPoint(event) {
+    const targets = this.terrain.water.visible
+      ? [this.terrain.mesh, this.terrain.water]
+      : [this.terrain.mesh]
+    return this.scene.pickTerrain(event, targets)
+  }
+
+  brushRadius() {
+    return this.actions.tool === 'inspect' ? this.terrain.inspectRadius() : this.actions.radius
+  }
+
+  refreshBrushCursor() {
+    const point = this.hoverPoint || (this.selected ? { x: this.selected.px, z: this.selected.pz } : null)
+    const show = this.editor.playing && !!point
+    this.terrain.setBrushCursor(point, this.brushRadius(), show)
   }
 
   preview() {
@@ -127,6 +155,8 @@ export class GameManager {
     this.ui.updateFieldView(world, this.ui.getLayer())
     this.ui.setInspection(null)
     this.selected = null
+    this.hoverPoint = null
+    this.terrain.clearBrushCursor()
     this.persist()
     this.sound.play('generate')
     this.ui.toast('Monde créé — partie en pause.')
@@ -138,6 +168,8 @@ export class GameManager {
     this.ui.setSpeed(0)
     this.ui.setMode('editing', { hasGame: this.worlds.hasGame })
     this.ui.applyWorldConfig(this.editor.draft)
+    this.hoverPoint = null
+    this.terrain.clearBrushCursor()
     this.preview()
   }
 
@@ -160,6 +192,7 @@ export class GameManager {
   setTool(tool) {
     this.actions.setTool(tool)
     this.ui.setTool(this.actions.tool)
+    this.refreshBrushCursor()
   }
 
   /** @param {number} speed */
@@ -199,22 +232,50 @@ export class GameManager {
   }
 
   /**
+   * Curseur de zone sous la souris (aperçu du rayon).
    * @param {PointerEvent} event
    */
-  onPointerUp(event) {
-    if (!this.pointerDown) return
-    const dx = event.clientX - this.pointerDown.x
-    const dy = event.clientY - this.pointerDown.y
-    const moved = Math.hypot(dx, dy) > 6
-    this.pointerDown = null
-    if (moved || !this.editor.playing || !this.worlds.world) return
+  handleHover(event) {
+    if (!this.editor.playing || !this.worlds.world) {
+      this.hoverPoint = null
+      this.terrain.clearBrushCursor()
+      return
+    }
+    const hit = this.pickPoint(event)
+    if (!hit) {
+      this.hoverPoint = null
+      if (this.selected) this.refreshBrushCursor()
+      else this.terrain.clearBrushCursor()
+      return
+    }
+    this.hoverPoint = { x: hit.x, z: hit.z }
+    this.terrain.setBrushCursor(this.hoverPoint, this.brushRadius(), true)
+  }
 
-    const hit = this.scene.pickTerrain(event, this.terrain.mesh)
-    if (!hit) return
+  /**
+   * Tap court : sélection + action (drag caméra ignoré).
+   * @param {PointerEvent} event
+   */
+  handleTap(event) {
     const world = this.worlds.world
+    if (!world) return
+    const hit = this.pickPoint(event)
+    if (!hit) return
     const cell = world.cellAt(hit.x, hit.z)
     this.selected = cell
+    this.hoverPoint = { x: hit.x, z: hit.z }
     this.ui.setInspection(cell)
+    this.refreshBrushCursor()
+
+    if (this.editor.editing) {
+      this.ui.toast(
+        `Altitude ${cell.h.toFixed(1)} · pollution ${Math.round(cell.pollution)} · sol ${Math.round(cell.soil)}`,
+      )
+      this.sound.play('ui')
+      return
+    }
+
+    if (!this.editor.playing) return
 
     if (this.actions.tool === 'inspect') {
       this.sound.play('ui')

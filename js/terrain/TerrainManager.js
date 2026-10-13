@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import { GRID, SIZE } from '../world/config.js'
+import { CELL, GRID, SIZE } from '../world/config.js'
 import { clamp } from '../world/math.js'
 import { buildRainOutline, buildWorldMesh } from '../world/colors.js'
 import { buildLowPolyClouds, generateCloudField } from './clouds.js'
@@ -16,8 +16,8 @@ export class TerrainManager {
 
     const terrainMaterial = new THREE.MeshStandardMaterial({
       vertexColors: true,
-      flatShading: true,
-      roughness: 1,
+      flatShading: false,
+      roughness: 0.92,
       metalness: 0.02,
     })
     this.mesh = new THREE.Mesh(new THREE.BufferGeometry(), terrainMaterial)
@@ -63,6 +63,22 @@ export class TerrainManager {
     this.rainline.renderOrder = 4
     this.rainline.visible = false
     this.group.add(this.rainline)
+
+    // Zone de sélection / curseur pinceau (Gaya LineLoop #e6ff99)
+    this.brushLine = new THREE.LineLoop(
+      new THREE.BufferGeometry(),
+      new THREE.LineBasicMaterial({
+        color: 0xe6ff99,
+        depthTest: false,
+        transparent: true,
+        opacity: 0.92,
+      }),
+    )
+    this.brushLine.renderOrder = 8
+    this.brushLine.visible = false
+    this.group.add(this.brushLine)
+    /** @type {{ x: number, z: number } | null} */
+    this.brushFocus = null
 
     const treeMax = GRID * GRID
     this.trunks = new THREE.InstancedMesh(
@@ -256,6 +272,48 @@ export class TerrainManager {
       mesh.visible = natural && mesh.count > 0
     }
     this.sourceGroup.visible = (natural || rain) && !!this.world?.source
+    if (!natural && !rain) this.brushLine.visible = false
+  }
+
+  /**
+   * Anneau de ciblage au sol (rayon = taille de zone / inspect = petite cellule).
+   * @param {{ x: number, z: number } | null} point
+   * @param {number} radius
+   * @param {boolean} [visible]
+   */
+  setBrushCursor(point, radius, visible = true) {
+    if (!point || !this.world || !visible) {
+      this.brushFocus = point
+      this.brushLine.visible = false
+      return
+    }
+    this.brushFocus = { x: point.x, z: point.z }
+    const water = this.world.config.water
+    const coords = []
+    const segments = 80
+    for (let i = 0; i < segments; i++) {
+      const a = (i / segments) * Math.PI * 2
+      let x = point.x + Math.cos(a) * radius
+      let z = point.z + Math.sin(a) * radius
+      x = clamp(x, -SIZE / 2, SIZE / 2)
+      z = clamp(z, -SIZE / 2, SIZE / 2)
+      const y = Math.max(this.world.height(x, z), water) + 0.3
+      coords.push(x, y, z)
+    }
+    this.brushLine.geometry.dispose()
+    this.brushLine.geometry = new THREE.BufferGeometry()
+    this.brushLine.geometry.setAttribute('position', new THREE.Float32BufferAttribute(coords, 3))
+    this.brushLine.visible = true
+  }
+
+  clearBrushCursor() {
+    this.brushFocus = null
+    this.brushLine.visible = false
+  }
+
+  /** @returns {number} rayon inspect (petite cellule) */
+  inspectRadius() {
+    return CELL * 0.75
   }
 
   /**

@@ -28,12 +28,12 @@ Le suivi d’ordre d’implémentation : [`BACKLOG.md`](./BACKLOG.md) + [`ROADMA
 | F-G12 | todo | Données éco live (tour) | pollution, moisture, veg |
 | F-G13 | todo | Source + oasis de départ | placement + halo humidité |
 | F-G14 | todo | Hotspots pollution héritée | cicatrices, pas de bâtiments |
-| F-G15 | todo | Arbres conditionnels (sol propre + humide) | végétation v0 |
+| F-G15 | **done** | Arbres MultiMesh conditionnels (veg > 25) | `tree_scatter.gd` / chunk 3D |
 | F-G16 | todo | Lessivage pollution par pluie | vers oasis / aval |
 | F-G17 | todo | Sécheresse (humidité ↓, arbres meurent) | pression sans villes |
 | F-G18 | todo | Naissance nouvelle source | sol propre + humide + veg |
 | F-G19 | todo | Météo tour (vent 4 dirs, pluie) | P2 |
-| F-G20 | todo | Deck : planter / dépolluer / forcer pluie | P3 |
+| F-G20 | todo | Deck : Semis (Mousses / Arbustes / Mycélium) + forcer pluie | P3 |
 | F-G21 | todo | Win / lose chapitre Oasis | P5 |
 | F-G22 | todo | UI joueur (hors debug) | topbar, bandeau météo |
 | F-G23 | todo | Persist save (config + partie) | |

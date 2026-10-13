@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#122523">
 <title>Gaïa — Atelier du vivant</title>
 <link rel="icon" href="./favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="./css/style.css?v=gaya-ui-17">
+<link rel="stylesheet" href="./css/style.css?v=gaya-ui-19">
 <script type="importmap">
 {
   "imports": {
@@ -59,6 +59,16 @@
  <div class="compass"><svg viewBox="0 0 40 40"><path d="m20 3 8 28-8-5-8 5Z" fill="none" stroke="currentColor" stroke-width="1"/><path d="m20 3 0 23-8 5Z" fill="currentColor" opacity=".6"/></svg>N</div>
  <div class="viewfooter"><div class="hint"><span class="desktoponly">Glisser : tourner &nbsp;&middot;&nbsp; Molette : zoom &nbsp;&middot;&nbsp; Clic droit : d&eacute;placer<br>Clic court : observer / agir</span><span class="mobileonly">1 doigt : tourner &nbsp;&middot;&nbsp; 2 doigts : zoom / d&eacute;placer<br>Toucher bri&egrave;vement : observer / agir</span></div><span class="enginebadge" id="engineBadge">THREE.JS</span></div>
  <div class="mobile-inspect hidden" id="mobileInspect"></div>
+ <aside id="selectionPopup" class="selection-popup hidden" aria-live="polite">
+  <strong id="popupTitle">Zone</strong>
+  <span id="popupMeta"></span>
+  <div class="popup-grid">
+   <span>Pollution</span><b id="popup-pollution">—</b>
+   <span>Humidit&eacute;</span><b id="popup-moisture">—</b>
+   <span>Fertilit&eacute;</span><b id="popup-soil">—</b>
+   <span>V&eacute;g&eacute;tation</span><b id="popup-veg">—</b>
+  </div>
+ </aside>
  <nav class="actiondock hidden" id="actionDock" aria-label="Actions sur le terrain">
   <button data-action="inspect" class="selected" title="Observer"><svg><use href="#i-search"/></svg>Observer</button><button data-action="clean" title="Retirer la pollution"><svg><use href="#i-clean"/></svg>D&eacute;polluer</button><button data-action="water" title="Arroser le sol"><svg><use href="#i-water"/></svg>Arroser</button><button data-action="soil" title="Enrichir le sol avec du compost"><svg><use href="#i-soil"/></svg>Enrichir</button><button data-action="plant" title="Planter de la vegetation"><svg><use href="#i-leaf"/></svg>Planter</button><button data-action="purify" title="Prelever et purifier de l'eau"><svg><use href="#i-fill"/></svg>Puiser</button>
  </nav>
@@ -108,6 +118,6 @@
 <script>
 setTimeout(() => document.getElementById('loading')?.classList.add('hidden'), 12000);
 </script>
-<script type="module" src="./js/app.js?v=gaya-ui-17"></script>
+<script type="module" src="./js/app.js?v=gaya-ui-19"></script>
 </body>
 </html>

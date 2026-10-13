@@ -24,7 +24,7 @@ export class SceneManager {
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.7))
     this.renderer.outputColorSpace = THREE.SRGBColorSpace
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping
-    this.renderer.toneMappingExposure = 1.08
+    this.renderer.toneMappingExposure = 0.95
     this.renderer.domElement.setAttribute('aria-label', 'Terrain Gaïa en trois dimensions')
     this.renderer.domElement.tabIndex = 0
     // Keep HUD overlays above the canvas
@@ -43,8 +43,9 @@ export class SceneManager {
     this.controls.zoomSpeed = 0.85
     this.controls.panSpeed = 0.8
 
-    this.scene.add(new THREE.HemisphereLight(0xeaf5df, 0x6a7463, 2.2))
-    const sun = new THREE.DirectionalLight(0xfff0cc, 2.5)
+    // Ambiance forte / soleil doux → moins de facettes « ombre » sur le low-poly.
+    this.scene.add(new THREE.HemisphereLight(0xeaf5df, 0x6a7463, 1.45))
+    const sun = new THREE.DirectionalLight(0xfff0cc, 1.15)
     sun.position.set(-65, 110, 65)
     this.scene.add(sun)
 
@@ -93,15 +94,16 @@ export class SceneManager {
 
   /**
    * @param {PointerEvent} event
-   * @param {THREE.Object3D} mesh
+   * @param {THREE.Object3D | THREE.Object3D[]} targets
    * @returns {{ x: number, y: number, z: number } | null}
    */
-  pickTerrain(event, mesh) {
+  pickTerrain(event, targets) {
     const rect = this.renderer.domElement.getBoundingClientRect()
     this.pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1
     this.pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1
     this.raycaster.setFromCamera(this.pointer, this.camera)
-    const hits = this.raycaster.intersectObject(mesh, false)
+    const list = Array.isArray(targets) ? targets : [targets]
+    const hits = this.raycaster.intersectObjects(list, false)
     if (!hits.length) return null
     const p = hits[0].point
     return { x: p.x, y: p.y, z: p.z }

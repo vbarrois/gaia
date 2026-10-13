@@ -1,6 +1,6 @@
 class_name TerrainMeshBuilder
 extends RefCounted
-## Heightfield flat-shaded par chunk.
+## Heightfield soft-shaded par chunk (normales sommet lissées).
 ## Raccords : positions de bord **exactes** (même monde pour 2 chunks voisins)
 ## + jupes (skirts) pour masquer micro-fissures / T-junctions si LOD.
 
@@ -23,16 +23,13 @@ static func build_chunk_mesh(
 	var colors: Array[Color] = []
 	colors.resize(cols * cols)
 
-	var sample_pollution := resolution >= 8
-	var pol_fallback := generator.config.pollution
-
+	# Couleurs en espace monde continu (pas floori→tuile) : sinon marches de
+	# « biome » alignées sur les bords de chunks alors que la hauteur raccords OK.
 	for iz in cols:
 		for ix in cols:
 			var xz := _grid_xz(origin_tile, chunk_size, unit, ix, iz, resolution)
 			var h := generator.height_at_world(xz.x, xz.y)
-			var pol := pol_fallback
-			if sample_pollution:
-				pol = generator.pollution_at_tile(floori(xz.x / unit), floori(xz.y / unit))
+			var pol := generator.pollution_at_world(xz.x, xz.y)
 			var veg := 0.0 if h < water_level else clampf((100.0 - pol) * 0.31, 0.0, 100.0)
 			var idx := iz * cols + ix
 			heights[idx] = h
@@ -48,6 +45,16 @@ static func build_chunk_mesh(
 	normals.resize(vert_count)
 	var vertex_colors := PackedColorArray()
 	vertex_colors.resize(vert_count)
+
+	# Normales via gradient hauteur monde (pas faces locales) → identiques
+	# des deux côtés d’un bord de chunk (sinon « coupure biome » = shading).
+	var step := float(chunk_size) * unit / float(resolution)
+	var smooth_n := PackedVector3Array()
+	smooth_n.resize(cols * cols)
+	for iz in cols:
+		for ix in cols:
+			var xz := _grid_xz(origin_tile, chunk_size, unit, ix, iz, resolution)
+			smooth_n[iz * cols + ix] = _normal_at_world(generator, xz.x, xz.y, step)
 
 	var vi := 0
 	for iz in resolution:
@@ -67,9 +74,17 @@ static func build_chunk_mesh(
 			var p01 := Vector3(xz01.x, heights[i01], xz01.y)
 			var p11 := Vector3(xz11.x, heights[i11], xz11.y)
 
-			# Winding horaire (Godot) → face dessus visible ; normale forcée +Y pour la light.
-			vi = _emit_tri(vertices, normals, vertex_colors, vi, p00, p10, p01, colors[i00], colors[i10], colors[i01], true)
-			vi = _emit_tri(vertices, normals, vertex_colors, vi, p10, p11, p01, colors[i10], colors[i11], colors[i01], true)
+			# Winding horaire (Godot) ; normales sommet lissées.
+			vi = _emit_tri_smooth(
+				vertices, normals, vertex_colors, vi,
+				p00, p10, p01, colors[i00], colors[i10], colors[i01],
+				smooth_n[i00], smooth_n[i10], smooth_n[i01]
+			)
+			vi = _emit_tri_smooth(
+				vertices, normals, vertex_colors, vi,
+				p10, p11, p01, colors[i10], colors[i11], colors[i01],
+				smooth_n[i10], smooth_n[i11], smooth_n[i01]
+			)
 
 	# Jupes : ferment les fissures entre chunks (surtout si LOD différent).
 	if skirt_depth > 0.0:
@@ -196,6 +211,63 @@ static func _emit_skirt_edge(
 	return vi
 
 
+## Différences centrales sur le heightfield → même normale aux bords partagés.
+static func _normal_at_world(
+	generator: TerrainGenerator,
+	world_x: float,
+	world_z: float,
+	eps: float
+) -> Vector3:
+	var e := maxf(eps * 0.5, 0.05)
+	var h_l := generator.height_at_world(world_x - e, world_z)
+	var h_r := generator.height_at_world(world_x + e, world_z)
+	var h_d := generator.height_at_world(world_x, world_z - e)
+	var h_u := generator.height_at_world(world_x, world_z + e)
+	var n := Vector3(h_l - h_r, 2.0 * e, h_d - h_u)
+	if n.is_zero_approx():
+		return Vector3.UP
+	return n.normalized()
+
+
+static func _tri_normal(a: Vector3, b: Vector3, c: Vector3) -> Vector3:
+	var n := (b - a).cross(c - a)
+	if n.is_zero_approx():
+		return Vector3.UP
+	if n.y < 0.0:
+		n = -n
+	return n.normalized()
+
+
+static func _emit_tri_smooth(
+	vertices: PackedVector3Array,
+	normals: PackedVector3Array,
+	vertex_colors: PackedColorArray,
+	vi: int,
+	a: Vector3,
+	b: Vector3,
+	c: Vector3,
+	ca: Color,
+	cb: Color,
+	cc: Color,
+	na: Vector3,
+	nb: Vector3,
+	nc: Vector3
+) -> int:
+	vertices[vi] = a
+	normals[vi] = na
+	vertex_colors[vi] = ca
+	vi += 1
+	vertices[vi] = b
+	normals[vi] = nb
+	vertex_colors[vi] = cb
+	vi += 1
+	vertices[vi] = c
+	normals[vi] = nc
+	vertex_colors[vi] = cc
+	vi += 1
+	return vi
+
+
 static func _emit_tri(
 	vertices: PackedVector3Array,
 	normals: PackedVector3Array,
@@ -209,24 +281,10 @@ static func _emit_tri(
 	cc: Color,
 	force_up_normal: bool = false
 ) -> int:
-	var n := (b - a).cross(c - a).normalized()
-	if n.is_zero_approx():
-		n = Vector3.UP
-	elif force_up_normal and n.y < 0.0:
+	var n := _tri_normal(a, b, c)
+	if force_up_normal and n.y < 0.0:
 		n = -n
-	vertices[vi] = a
-	normals[vi] = n
-	vertex_colors[vi] = ca
-	vi += 1
-	vertices[vi] = b
-	normals[vi] = n
-	vertex_colors[vi] = cb
-	vi += 1
-	vertices[vi] = c
-	normals[vi] = n
-	vertex_colors[vi] = cc
-	vi += 1
-	return vi
+	return _emit_tri_smooth(vertices, normals, vertex_colors, vi, a, b, c, ca, cb, cc, n, n, n)
 
 
 static func lod_resolution(

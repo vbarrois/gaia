@@ -34,7 +34,7 @@ Priorité : **haute → basse**. Statuts : `todo` · `wip` · `done` · `blocked
 | G1-3 | todo | Layer pollution (héritage + hotspots) | G1-2 |
 | G1-4 | todo | Layer humidité | G1-2 |
 | G1-5 | todo | Placement Source + oasis (marker 3D) | G0-6 |
-| G1-6 | todo | Arbres MultiMesh conditionnels | G1-4, G1-5 |
+| G1-6 | **done** | Arbres MultiMesh conditionnels (veg > 25) | G0-6 |
 | G1-7 | todo | Mini-carte / HUD non-debug | G0-5 |
 | G1-8 | todo | Persistance seed + camera (ConfigFile / user://) | G0-2 |
 | G1-9 | todo | Shadows LOD near seulement | G0-7 |
@@ -63,7 +63,7 @@ Priorité : **haute → basse**. Statuts : `todo` · `wip` · `done` · `blocked
 | G3-2 | todo | Vent 4 dirs × faible/fort (+ dérive poussière légère) | G3-1 |
 | G3-3 | todo | Pluie sec / fine / forte + bandeau J/J+1 | G3-1 |
 | G3-4 | todo | Deck + main 3 + 1 action | G3-1 |
-| G3-5 | todo | Actions planter / dépolluer / forcer pluie | G3-4 |
+| G3-5 | todo | Deck Semis (Mousses / Arbustes / Mycélium) + forcer pluie | G3-4 |
 
 ---
 
@@ -86,14 +86,14 @@ Priorité : **haute → basse**. Statuts : `todo` · `wip` · `done` · `blocked
 | GD2 | Monde infini OK pour chunks ; chapitre Oasis peut borner un « front » jouable |
 | GD3 | TimeManager avance les jours mais aucune simu éco branchée |
 | GD4 | Input WASD peut conflictuer plus tard avec hotkeys outils |
-| GD5 | Pas encore d’arbres / nuages 3D (JS les a) |
-| GD6 | Seam chunks OK en hauteur ; normales flat peuvent « casser » le shading à la jointure |
+| GD5 | Nuages 3D pas encore portés (arbres = G1-6 done) |
+| GD6 | Seam chunks : hauteur OK ; couleurs = sample monde continu (plus de marches pollution/tuile) |
 
 ---
 
 ## Prochaine action
 
 1. **G0-10** — F5 : valider feel orbit / fog / perf (tris HUD).  
-2. Enchaîner **G1-5** (Source + oasis marker) puis **G1-6** (arbres MultiMesh).  
+2. Enchaîner **G1-5** (Source + oasis marker). Arbres = **G1-6 done**.  
 3. Ne pas réintroduire villes/routes.  
 4. Ne pas toucher au cleanup JS (`G4-2`) tant que la parité n’est pas là.

@@ -20,11 +20,11 @@ signal focus_changed(focus: Vector3)
 @export var pan_sensitivity: float = 0.35
 
 @export_group("Éclairage")
-@export var sun_energy_near: float = 1.05
-@export var sun_energy_far: float = 0.55
-@export var ambient_energy_near: float = 0.28
-@export var ambient_energy_far: float = 0.12
-@export var exposure_near: float = 1.0
+@export var sun_energy_near: float = 0.72
+@export var sun_energy_far: float = 0.42
+@export var ambient_energy_near: float = 0.48
+@export var ambient_energy_far: float = 0.28
+@export var exposure_near: float = 0.95
 @export var exposure_far: float = 0.82
 @export var fog_enabled: bool = false
 

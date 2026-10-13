@@ -43,10 +43,15 @@ func height_at_tile(tile_x: int, tile_y: int) -> float:
 	return height_at_world(w.x, w.y)
 
 
+## Pollution continue en monde (même bruit des deux côtés d’un bord de chunk).
+func pollution_at_world(world_x: float, world_z: float) -> float:
+	var noise := perlin.noise(world_x / 31.0 + 6.0, world_z / 31.0 + 22.0, 4.6)
+	return clampf(config.pollution + noise * 54.0, 0.0, 100.0)
+
+
 func pollution_at_tile(tile_x: int, tile_y: int) -> float:
 	var w := tile_to_world(tile_x, tile_y)
-	var noise := perlin.noise(w.x / 31.0 + 6.0, w.y / 31.0 + 22.0, 4.6)
-	return clampf(config.pollution + noise * 54.0, 0.0, 100.0)
+	return pollution_at_world(w.x, w.y)
 
 
 func build_cell(tile_x: int, tile_y: int) -> CellData:
@@ -63,5 +68,7 @@ func build_cell(tile_x: int, tile_y: int) -> CellData:
 	else:
 		cell.soil = clampf(36.0 - pol * 0.22, 0.0, 100.0)
 		cell.moisture = clampf(39.0 + (config.water_level - h) * 1.1, 0.0, 100.0)
-		cell.veg = clampf((100.0 - pol) * 0.31, 0.0, 100.0)
+		# + jitter déterministe (port JS `rand() * 9`) pour densifier un peu la veg.
+		var jitter := HashUtil.hash01(config.seed * 31 + tile_x + tile_y * 97) * 9.0
+		cell.veg = clampf((100.0 - pol) * 0.31 + jitter, 0.0, 100.0)
 	return cell

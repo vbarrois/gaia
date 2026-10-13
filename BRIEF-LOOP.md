@@ -8,17 +8,17 @@ Runtime cible : **Godot 4.7**. Le proto JS reste jusqu’à parité ; cleanup en
 ## Teaser
 Des siècles de surconsommation, de destruction et de réchauffement ont laissé une terre morte. Les humains ont disparu. Plus rien ne pousse — sauf là où l’eau jaillit encore.
 Une **source**, un **oasis**. Le vent pousse les nuages ; la pluie fertilise… ou lessive le poison vers ce qui reste vivant.
-Dépollue, laisse pousser, fais naître de nouvelles sources. La nature reprend ses droits — si tu anticipes le ciel.
+Sème des filtres, laisse pousser, fais naître de nouvelles sources. La nature reprend ses droits — si tu anticipes le ciel.
 ---
 ## Produit
 Jeu **tour par tour**, reconquête progressive d’une Terre polluée **sans habitants**.
 La pollution est un **héritage** (cicatrices / hotspots), pas une usine qui crache encore.
 L’antagoniste vivant, c’est le **climat** : vent → nuages → pluie → humidité / lessivage.
-Le joueur **plante**, **dépollue**, et rarement **force une pluie**, pour étendre la zone vivante et faire naître de nouvelles sources.
+Le joueur joue des cartes **Semis** (phytoremédiation : variantes de filtre vivant) et rarement **force une pluie**, pour étendre la zone vivante et faire naître de nouvelles sources.
 ## Compétence (non négociable)
 > Voir l’événement climatique, agir *avant*, pour optimiser l’effet de l’action choisie.
 Si le joueur pense « je joue −pollution », on a raté.  
-S’il pense « pluie d’ouest demain, je dépollue *maintenant* en amont de l’oasis », on a réussi.
+S’il pense « pluie d’ouest demain, je pose des mousses / du mycélium *maintenant* en amont de l’oasis », on a réussi.
 ## Contrat Vincent / Boun
 | | Boun — SIG | Vincent — partie |
 |---|---|---|
@@ -30,6 +30,7 @@ Le SIG est le **plateau**, jamais le jeu. Pas de mode atelier (zoomer, tweaker 2
 ---
 ## Décision figée (ne pas recaser sans écriture)
 **On casse villes + routes** parce que les humains ont détruit puis disparu : plus d’émetteurs actifs ni de rubans de transport.
+**On casse Planter / Dépolluer séparés** parce que la dépollution est de la **phytoremédiation** : une famille **Semis** à variantes, pas un bouton −pollution.
 ---
 ## Systèmes du monde
 | Couche | Rôle |
@@ -45,28 +46,35 @@ Hotspots toxiques = cicatrices du passé (générés / placés), pas des bâtime
 ## Boucle v0 — chapitre « Oasis »
 ```
 Météo s’annonce (vent + pluie, J et J+1)
-  → 1 action (planter / dépolluer / forcer pluie)
+  → 1 action (Semis variante / forcer pluie)
     → vent déplace nuages (+ poussière toxique légère)
       → pluie humidifie / lessive
-        → sol évolue
-          → arbres poussent ou meurent
-            → source tient, meurt, ou une nouvelle naît
+        → filtres végétaux absorbent
+          → sol évolue
+            → arbres poussent ou meurent
+              → source tient, meurt, ou une nouvelle naît
 ```
 - **8–12 saisons** (voir Q1).
 - Main de **3**. Pioche petite.
 - **Une** action, puis le monde joue tout seul. Le joueur ne micro-gère pas.
-Formule : **vent = direction, pluie = intensité, plante / dépolluer = absorption & préparation.**
+Formule : **vent = direction, pluie = intensité, Semis = absorption & préparation.**
 
 ### Progression
 Le joueur n’a pas à nettoyer toute la map. Il **étend la zone vivante** :
-sol dépollué + humide → arbres → chance de **faire naître une nouvelle source** → nouveau front (chunks Godot).
+sol filtré (phyto) + humide → arbres → chance de **faire naître une nouvelle source** → nouveau front (chunks Godot).
 
 ### Actions
-| Action | Fait | Ne fait pas |
+Une famille **Semis** (phytoremédiation) : pose / renforce un filtre vivant. Les variantes changent *comment* le filtre agit, pas le verbe.  
+**Forcer une pluie** reste **hors famille** (carte rare séparée).
+
+| Carte | Fait | Ne fait pas / trade-off |
 |---|---|---|
-| **Planter** (filtre sol) | Pose / renforce végétation qui absorbe pollution dans la terre | N’humidifie pas seule ; faible effet si sol sec |
-| **Dépolluer** | Baisse nette pollution sur une **zone ciblée** (coût / rare) | Ne crée pas d’eau ; prépare le terrain pour une future source |
-| **Forcer une pluie** | Lessive / humidifie une zone (sous nuages ou ciblée) | Peut **pousser le poison** vers une source mal placée. Rare : **1** dans le deck |
+| **Semis — Mousses** | Absorption lente, large zone, peu coûteuse | Faible si sol sec ; lit le lessivage J+1 |
+| **Semis — Arbustes** | Absorption moyenne, zone moyenne | Besoin d’humidité déjà là |
+| **Semis — Mycélium** | Absorption forte / rapide sur hotspot | Zone petite ; rare dans le deck |
+| **Forcer une pluie** | Lessive / humidifie une zone (sous nuages ou ciblée) | Peut **pousser le poison** vers une source mal placée. Rare : **1** dans le deck. Ne plante pas. |
+
+Hors v0 (variante future) : **Roseaux** — filtre + bord d’eau, seulement près oasis / humidité haute.
 
 Ciblage v0 : **autour des sources / de la lisière vivante** (pas paintbrush libre sur toute la map).
 
@@ -134,6 +142,6 @@ Formule v1 : le vent dirige aussi pollen et feu.
 **Début**
 > La terre est sale. Une source jaillit encore.  
 > Le vent va tourner. La pluie peut tuer ou guérir.  
-> Dépollue, plante, anticipes. Fais naître la suivante.
+> Sème des filtres, anticipes. Fais naître la suivante.
 **Tour** — une ligne, voir bandeau météo plus haut.
 **Fin** — win / lose ci-dessus.
