@@ -81,6 +81,13 @@ func build() -> void:
 	built.emit(chunk_coord, triangle_count)
 
 
+## Recalcule uniquement les MultiMesh arbres (après tick éco / fertilité).
+func rebuild_trees() -> void:
+	if not is_built or _config == null or _generator == null:
+		return
+	_rebuild_trees()
+
+
 func _rebuild_trees() -> void:
 	_ensure_tree_nodes()
 	var placements := TreeScatter.collect_for_chunk(_generator, _config, chunk_coord)

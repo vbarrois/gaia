@@ -28,6 +28,8 @@ var _mesh_dirty_now: bool = false
 ## Recolor éco throttlé.
 var _eco_mesh_due: bool = false
 var _eco_mesh_timer: float = 0.0
+## true = rebuild mesh+arbres ; false = arbres seulement.
+var _eco_want_mesh: bool = false
 ## Si non vide : ne recolorer que ces coords (éco). Vide = tous les chargés.
 var _rebuild_filter: Dictionary = {}
 var _last_center: Vector2i = Vector2i(999_999, 999_999)
@@ -64,6 +66,7 @@ func _process(delta: float) -> void:
 		_mesh_dirty_now = false
 		_eco_mesh_due = false
 		_eco_mesh_timer = 0.0
+		_eco_want_mesh = false
 		_queue_rebuilds(_rebuild_filter)
 		_rebuild_filter.clear()
 	elif _eco_mesh_due:
@@ -71,8 +74,7 @@ func _process(delta: float) -> void:
 		if _eco_mesh_timer >= ECO_MESH_INTERVAL_SEC:
 			_eco_mesh_due = false
 			_eco_mesh_timer = 0.0
-			_queue_rebuilds(_rebuild_filter)
-			_rebuild_filter.clear()
+			_flush_eco_visuals()
 	_drain_build_queue()
 
 
@@ -196,6 +198,7 @@ func _clear_all() -> void:
 	_mesh_dirty_now = false
 	_eco_mesh_due = false
 	_eco_mesh_timer = 0.0
+	_eco_want_mesh = false
 	_rebuild_filter.clear()
 	_total_triangles = 0
 	_last_center = Vector2i(999_999, 999_999)
@@ -217,7 +220,36 @@ func rebuild_loaded_meshes() -> void:
 func request_eco_mesh_rebuild() -> void:
 	for c in WorldManager.eco_affected_chunk_coords():
 		_rebuild_filter[c] = true
+	_eco_want_mesh = true
 	_eco_mesh_due = true
+
+
+## Arbres près des sources (fertilité / humidité) — même throttle que le mesh éco.
+func request_eco_tree_rebuild() -> void:
+	for c in WorldManager.eco_affected_chunk_coords():
+		_rebuild_filter[c] = true
+	_eco_mesh_due = true
+
+
+## Recalcule les arbres de tous les chunks chargés (immédiat).
+func rebuild_all_trees() -> void:
+	for coord in _loaded.keys():
+		var chunk: MapChunk3D = _loaded[coord]
+		if chunk:
+			chunk.rebuild_trees()
+
+
+func _flush_eco_visuals() -> void:
+	if _eco_want_mesh:
+		_eco_want_mesh = false
+		_queue_rebuilds(_rebuild_filter)
+		_rebuild_filter.clear()
+		return
+	for coord in _rebuild_filter.keys():
+		var chunk: MapChunk3D = _loaded.get(coord)
+		if chunk:
+			chunk.rebuild_trees()
+	_rebuild_filter.clear()
 
 
 func _queue_rebuilds(filter: Dictionary) -> void:

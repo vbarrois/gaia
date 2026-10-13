@@ -163,7 +163,9 @@ func _on_view_layer_changed(_layer: int) -> void:
 
 
 func _on_eco_changed() -> void:
-	# Couche humidité / fertilité / etc. : recolor throttlé près des sources.
+	# Arbres suivent la fertilité (humidité source) même en vue naturelle.
+	ChunkManager.request_eco_tree_rebuild()
+	# Couches colorimétriques : recolor mesh près des sources.
 	if WorldManager.view_layer != WorldManager.ViewLayer.NATURAL:
 		ChunkManager.request_eco_mesh_rebuild()
 
@@ -264,6 +266,8 @@ func _on_sources_changed() -> void:
 			8.0,
 			(float(primary.tile.y) + 0.5) * unit
 		))
+	# Fertilité / oasis à jour → rescan arbres.
+	ChunkManager.rebuild_all_trees()
 
 
 func _rebuild_source_markers() -> void:

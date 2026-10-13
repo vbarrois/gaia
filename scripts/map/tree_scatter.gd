@@ -1,9 +1,13 @@
 class_name TreeScatter
 extends RefCounted
-## Placements d’arbres Gaya (port de `js/terrain/trees.js`) + assets MultiMesh partagés.
-## Règle : veg > 25 + tirage déterministe ; pas sur l’eau.
+## Placements d’arbres : fertilité suffisante + tirage déterministe ; pas sur l’eau.
+## fertilité = sol × (humidité/100) × (1 − pollution/100) — suit l’éco live (sources).
 
-const VEG_MIN := 25.0
+## Seuil mini de fertilité pour qu’un arbre puisse apparaître.
+## (sol≈50 × humidité≈35% × clean ≈ 17 ; oasis plus haut.)
+const FERT_MIN := 10.0
+## Probabilité ≈ fertility / FERT_CHANCE (plafonnée à ~1).
+const FERT_CHANCE := 55.0
 ## Stride spatial (monde infini) — évite collisions x/z vs GRID JS fixe.
 const TILE_STRIDE := 73856093
 
@@ -74,11 +78,19 @@ static func collect_for_chunk(
 		for lx in size:
 			var tx := origin.x + lx
 			var tz := origin.y + lz
-			var cell := generator.build_cell(tx, tz)
-			if cell.wet or cell.veg <= VEG_MIN:
+			# Éco live (humidité source) si dispo, sinon baseline générateur.
+			var cell: CellData
+			if WorldManager:
+				cell = WorldManager.get_cell(tx, tz)
+			else:
+				cell = generator.build_cell(tx, tz)
+			if cell.wet:
+				continue
+			var fert := cell.fertility()
+			if fert <= FERT_MIN:
 				continue
 			var r := HashUtil.hash01(seed + tx + tz * TILE_STRIDE)
-			if r >= cell.veg / 125.0:
+			if r >= fert / FERT_CHANCE:
 				continue
 			var ox := (HashUtil.hash01(tx + tz * 89 + 442) - 0.5) * 1.8
 			var oz := (HashUtil.hash01(tx + tz * 12 + 72) - 0.5) * 1.8
@@ -87,14 +99,14 @@ static func collect_for_chunk(
 			var y := generator.height_at_world(wx, wz)
 			if y < water + 0.25:
 				continue
-			var s := 0.7 + cell.veg * 0.018
+			var s := 0.65 + fert * 0.022
 			list.append({
 				"x": wx,
 				"y": y,
 				"z": wz,
 				"s": s,
 				"r": r,
-				"veg": cell.veg,
+				"fert": fert,
 			})
 	return list
 
@@ -125,7 +137,7 @@ static func fill_multimeshes(
 		var z: float = t["z"]
 		var s: float = t["s"]
 		var r: float = t["r"]
-		var veg: float = t["veg"]
+		var fert: float = float(t.get("fert", 20.0))
 		var yaw := r * 7.0
 		var basis := Basis.from_euler(Vector3(0.0, yaw, 0.0)).scaled(Vector3(s, s, s))
 
@@ -134,7 +146,7 @@ static func fill_multimeshes(
 		tops.set_instance_transform(i, Transform3D(basis, Vector3(x, y + s * 3.1, z)))
 
 		var hue := 0.22 + r * 0.035
-		var sat := 0.2 + clampf(veg / 110.0, 0.0, 1.0) * 0.24
+		var sat := 0.2 + clampf(fert / 55.0, 0.0, 1.0) * 0.28
 		var lit := 0.25 + r * 0.15
 		var col := Color.from_hsv(hue, sat, lit)
 		crowns.set_instance_color(i, col)

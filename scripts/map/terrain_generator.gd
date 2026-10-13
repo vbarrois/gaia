@@ -66,7 +66,8 @@ func build_cell(tile_x: int, tile_y: int) -> CellData:
 		cell.veg = 0.0
 		cell.soil = 20.0
 	else:
-		cell.soil = clampf(36.0 - pol * 0.22, 0.0, 100.0)
+		# Sol un peu plus généreux : fertilité exploitable hors oasis.
+		cell.soil = clampf(52.0 - pol * 0.28, 0.0, 100.0)
 		cell.moisture = clampf(39.0 + (config.water_level - h) * 1.1, 0.0, 100.0)
 		# + jitter déterministe (port JS `rand() * 9`) pour densifier un peu la veg.
 		var jitter := HashUtil.hash01(config.seed * 31 + tile_x + tile_y * 97) * 9.0
