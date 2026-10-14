@@ -2,7 +2,10 @@
 .godot/
 /android/
 *.translation
-export_presets.cfg
+# export_presets.cfg est versionné (Web / partage) — pas de secrets Android ici.
+
+# Builds locaux / CI
+/build/
 
 # OS / editor
 .DS_Store

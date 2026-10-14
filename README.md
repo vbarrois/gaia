@@ -48,6 +48,27 @@ resources/configs/    → WorldConfig .tres (tweaks + LOD)
 
 Détail : [`docs/godot/ARCHITECTURE.md`](./docs/godot/ARCHITECTURE.md).
 
+### Partager le proto (sans installer Godot)
+
+Export **Web** → jouable dans le navigateur (lien pour un ami, iframe, itch…).
+
+1. **En local** (test) :
+   ```bash
+   SERVE=1 ./scripts/export_web.sh
+   ```
+   Ouvre [http://127.0.0.1:4174](http://127.0.0.1:4174).
+
+2. **Lien public** : push sur `main` → GitHub Actions exporte et déploie sur **GitHub Pages**.  
+   URL typique : `https://vbarrois.github.io/gaia/`  
+   (une fois Pages activé : repo → Settings → Pages → Source = **GitHub Actions**).
+
+3. **Embed** sur un site :
+   ```html
+   <iframe src="https://vbarrois.github.io/gaia/" width="100%" height="720" allow="autoplay; fullscreen" style="border:0"></iframe>
+   ```
+
+Preset : `export_presets.cfg` (Web, single-thread, shell `web/shell.html`).
+
 ---
 
 ## Proto JS (legacy)

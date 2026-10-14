@@ -75,8 +75,8 @@ Priorité : **haute → basse**. Statuts : `todo` · `wip` · `done` · `blocked
 |---|---|---|---|
 | G4-1 | todo | Parité features critiques JS → Godot | G1–G3 |
 | G4-2 | frozen | Supprimer / archiver `js/`, `index.html`, Three CDN | **fin** migration |
-| G4-3 | todo | CI : export Godot ou lint GDScript | G0-9 |
-| G4-4 | todo | Pages GitHub → build Godot web (option) | G4-1 |
+| G4-3 | wip | CI : export Godot web (Pages) ; lint GDScript later | G0-9 |
+| G4-4 | **done** | Pages GitHub → build Godot web | preset Web + `pages.yml` |
 
 ---
 
