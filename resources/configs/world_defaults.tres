@@ -4,3 +4,6 @@
 
 [resource]
 script = ExtResource("1_cfg")
+chunk_size = 16
+load_radius = 1
+chunk_pool_prewarm = 4

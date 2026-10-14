@@ -73,7 +73,9 @@ func _refresh() -> void:
 		"Gaïa · Godot 3D",
 		"État : %s  ·  Jour %d  ·  Tempo %s  ·  Seed %d" % [state_name, day, tempo, world_seed],
 		"Couche : %s  ·  1–5 ou L" % WorldManager.view_layer_name(),
-		"Chunks : %d  ·  queue build : %d  ·  tris : %d" % [chunks, _pending, _tris],
+		"Chunks : %d  ·  queue build : %d  ·  tris : %d  ·  hotspots : %d" % [
+			chunks, _pending, _tris, WorldManager.hotspots.size()
+		],
 		"Clic gauche drag = orbit  ·  Droit = pan  ·  Molette = zoom",
 		"WASD = déplacer  ·  T = vue dessus  ·  F = reset  ·  R = seed  ·  Espace = pause  ·  −/+ = tempo  ·  G = grille chunks",
 	]
@@ -87,7 +89,11 @@ func _refresh() -> void:
 	if faster_btn:
 		faster_btn.disabled = TimeManager.effective_speed() >= TimeManager.SPEED_STEPS[-1]
 	if not _hover.is_empty():
-		var src_tag := "  ·  SOURCE" if bool(_hover.get("is_source", false)) else ""
+		var tags := ""
+		if bool(_hover.get("is_source", false)):
+			tags += "  ·  SOURCE"
+		if bool(_hover.get("is_hotspot", false)):
+			tags += "  ·  HOTSPOT"
 		lines.append(
 			"Tuile (%d,%d)  biome=%s  h=%.1f%s"
 			% [
@@ -95,7 +101,7 @@ func _refresh() -> void:
 				int(_hover.get("tile_y", 0)),
 				Biomes.name_of(int(_hover.get("biome", 0))),
 				float(_hover.get("height", 0.0)),
-				src_tag,
+				tags,
 			]
 		)
 		lines.append(

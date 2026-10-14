@@ -93,7 +93,10 @@ Exemple de bandeau :
 `Saison 4/12 · Oasis claire · → Ouest fort · pluie demain sur la lisière est`
 
 ### Pression (comment on perd)
-1. **Lessivage** : pluie sur sol sale → pollution migre vers l’oasis / sources aval.  
+1. **Migration pollution (2 canaux)** — détail [`docs/ECO-SYSTEM-ROADMAP.md`](./docs/ECO-SYSTEM-ROADMAP.md) §2.1 :  
+   - **Hydrique** : sol humide + déplacement d’humidité emporte une part de pollution (vers l’oasis / aval).  
+   - **Particulaire** : sol sale émet ; le vent transporte et redépose ailleurs.  
+   La pluie (P2) amplifiera l’hydrique ; le proto Godot tourne déjà au tick jour.  
 2. **Sécheresse** : pas de pluie + vent fort → humidité chute → arbres meurent → oasis se referme.  
 3. **Contamination de source** : seuil → source morte (plus d’oasis, plus de front).
 

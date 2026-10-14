@@ -6,11 +6,17 @@ extends RefCounted
 
 var config: WorldConfig
 var perlin: Perlin
+## Cicatrices héritées (WorldManager les remplit après spawn source).
+var hotspots: Array = []
+## Tuiles source (refuge propre) — pollution initiale forcée à 0.
+var clean_tiles: Array[Vector2i] = []
 
 
 func _init(p_config: WorldConfig, p_perlin: Perlin = null) -> void:
 	config = p_config
 	perlin = p_perlin if p_perlin != null else Perlin.new(p_config.seed)
+	hotspots = []
+	clean_tiles = []
 
 
 ## Coordonnées monde « JS-like » (unités continues) à partir d’indices de tuile.
@@ -43,15 +49,53 @@ func height_at_tile(tile_x: int, tile_y: int) -> float:
 	return height_at_world(w.x, w.y)
 
 
-## Pollution continue en monde (même bruit des deux côtés d’un bord de chunk).
+## Pollution continue + cicatrices (hotspots). Fond élevé ; source = exception propre.
 func pollution_at_world(world_x: float, world_z: float) -> float:
+	var u := config.world_unit_per_tile
+	var tx := floori(world_x / u)
+	var tz := floori(world_z / u)
+	if _is_clean_tile(tx, tz):
+		return 0.0
 	var noise := perlin.noise(world_x / 31.0 + 6.0, world_z / 31.0 + 22.0, 4.6)
-	return clampf(config.pollution + noise * 54.0, 0.0, 100.0)
+	# Fond hérité fort (~55–90) — la carte part sale hors oasis.
+	var ambient := clampf(config.pollution * 0.82 + noise * 16.0, 0.0, 92.0)
+	var boost := hotspot_boost_at_tile(tx, tz)
+	return clampf(ambient + boost, 0.0, 100.0)
+
+
+func _is_clean_tile(tile_x: int, tile_y: int) -> bool:
+	var t := Vector2i(tile_x, tile_y)
+	for c in clean_tiles:
+		if c == t:
+			return true
+	return false
 
 
 func pollution_at_tile(tile_x: int, tile_y: int) -> float:
 	var w := tile_to_world(tile_x, tile_y)
 	return pollution_at_world(w.x, w.y)
+
+
+func hotspot_boost_at_tile(tile_x: int, tile_y: int) -> float:
+	var boost := 0.0
+	for h in hotspots:
+		if h == null:
+			continue
+		boost = maxf(boost, float(h.contribution_at(tile_x, tile_y)))
+	return boost
+
+
+func hotspot_at_tile(tile_x: int, tile_y: int):
+	var best = null
+	var best_c := 0.0
+	for h in hotspots:
+		if h == null:
+			continue
+		var c := float(h.contribution_at(tile_x, tile_y))
+		if c > best_c:
+			best_c = c
+			best = h
+	return best
 
 
 func build_cell(tile_x: int, tile_y: int) -> CellData:

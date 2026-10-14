@@ -41,14 +41,10 @@ static func build_chunk_mesh(
 			if iz >= resolution:
 				tz = origin_tile.y + chunk_size - 1
 
-			if layer == WorldManager.ViewLayer.NATURAL:
-				var pol := generator.pollution_at_world(xz.x, xz.y)
-				var veg := 0.0 if h < water_level else clampf((100.0 - pol) * 0.31, 0.0, 100.0)
-				colors[idx] = TerrainColors.natural(h, water_level, pol, veg)
-			else:
-				var cell := WorldManager.get_cell(tx, tz)
-				cell.height = h
-				colors[idx] = TerrainColors.for_cell(layer, cell, water_level)
+			# Toujours get_cell : pollution / veg / sol live (sinon naturel reste figé baseline).
+			var cell := WorldManager.get_cell(tx, tz) if WorldManager else generator.build_cell(tx, tz)
+			cell.height = h
+			colors[idx] = TerrainColors.for_cell(layer, cell, water_level)
 
 	# Surface + 4 jupes (res quads × 2 tris chacune).
 	var surface_tris := resolution * resolution * 2

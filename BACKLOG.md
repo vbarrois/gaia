@@ -31,7 +31,7 @@ Priorité : **haute → basse**. Statuts : `todo` · `wip` · `done` · `blocked
 |---|---|---|---|
 | G1-1 | todo | Art / texture optionnelle (vertex color OK) | G0-6 |
 | G1-2 | **done** | Hauteur / relief 3D lisible | G0-6 |
-| G1-3 | todo | Layer pollution (héritage + hotspots) | G1-2 |
+| G1-3 | **done** | Layer pollution (héritage + hotspots) | G1-2 |
 | G1-4 | wip | Layer humidité (capillarité source done ; overlay plein map later) | G1-5 |
 | G1-5 | **done** | Placement Source + marker 3D + rayon debug clic | G0-6 |
 | G1-5b | **done** | Capillarité journalière + fertilité dérivée | G1-5 |
@@ -47,9 +47,9 @@ Priorité : **haute → basse**. Statuts : `todo` · `wip` · `done` · `blocked
 
 | ID | Statut | Item | Dépend |
 |---|---|---|---|
-| G2-1 | todo | Départ : 1 source + oasis + hotspots pollution | G1-5 |
+| G2-1 | wip | Départ : 1 source + oasis + hotspots pollution | G1-5 |
 | G2-2 | todo | Zones ciblables : sources / lisière vivante | G2-1 |
-| G2-3 | todo | Lessivage pluie → migration pollution vers oasis | G1-3, G2-1 |
+| G2-3 | **wip** | Migration pollution : hydrique + particulaire (vent) ; pluie P2 ensuite | G1-3, G2-1 |
 | G2-4 | todo | Sécheresse : humidité ↓, arbres meurent | G1-6 |
 | G2-5 | todo | Naissance 2ᵉ source (seuils sol / humidité / veg) | G2-1, G1-6 |
 | G2-6 | todo | Seuils win/lose chapitre (sans deck encore) | G2-5 |
@@ -80,6 +80,23 @@ Priorité : **haute → basse**. Statuts : `todo` · `wip` · `done` · `blocked
 
 ---
 
+## GE — Éco riche (piste E / PDF)
+
+Produit : [`docs/ECO-SYSTEM-ROADMAP.md`](./docs/ECO-SYSTEM-ROADMAP.md) (`E0`–`E6`).  
+Priorité Oasis v0 d’abord ; GE0 peut démarrer avec le deck Semis.
+
+| ID | Statut | Item | Dépend | Produit |
+|---|---|---|---|---|
+| GE0 | todo | Stocks tuile biomasse morte + humus ; coeffs 3 Semis | G1-5b, G3-5 | E0 |
+| GE1 | todo | Split pollutions (chimique / organique d’abord) | G1-3 | E1 |
+| GE2 | todo | Cycle vivant → morte → humus (+ évap / couverture) | GE0 | E2 |
+| GE3 | frozen | Succession + colonisation voisins | GE2 | E3 |
+| GE4 | frozen | Banque de graines + herbier / inventaire | GE1, G3-4 | E4 |
+| GE5 | frozen | Extractrices + contamination biomasse + récolte | GE1, GE2 | E5 |
+| GE6 | frozen | Roseaux / zones humides + régression | G3-2, G3-3 | E6 |
+
+---
+
 ## Dettes connues (proto actuel)
 
 | ID | Item |
@@ -96,6 +113,7 @@ Priorité : **haute → basse**. Statuts : `todo` · `wip` · `done` · `blocked
 ## Prochaine action
 
 1. **G0-10** — F5 : valider feel orbit / fog / perf (tris HUD).  
-2. Enchaîner **G1-5** (Source + oasis marker). Arbres = **G1-6 done**.  
+2. Oasis **G2** / **P1** (hotspots, lessivage, 2ᵉ source). Arbres fertilité = done.  
 3. Ne pas réintroduire villes/routes.  
-4. Ne pas toucher au cleanup JS (`G4-2`) tant que la parité n’est pas là.
+4. **GE0+** seulement après (ou avec) Semis — voir piste E.  
+5. Ne pas toucher au cleanup JS (`G4-2`) tant que la parité n’est pas là.

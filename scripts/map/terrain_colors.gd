@@ -14,7 +14,12 @@ static func for_cell(layer: int, cell: CellData, water_level: float) -> Color:
 		WorldManager.ViewLayer.MOISTURE:
 			return moisture_blue(cell.moisture)
 		WorldManager.ViewLayer.POLLUTION:
-			return heatmap(cell.pollution / 100.0, Color(0.39, 0.62, 0.38), Color(0.62, 0.32, 0.59))
+			# Contraste volontaire : propre → cicatrice violette saturée.
+			return heatmap(
+				cell.pollution / 100.0,
+				Color(0.42, 0.68, 0.40),
+				Color(0.72, 0.18, 0.68)
+			)
 		WorldManager.ViewLayer.FERTILITY:
 			return heatmap(cell.fertility() / 100.0, Color(0.45, 0.32, 0.22), Color(0.35, 0.78, 0.42))
 		_:

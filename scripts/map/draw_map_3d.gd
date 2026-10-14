@@ -13,9 +13,11 @@ signal focus_changed(focus: Vector3)
 
 @export var config: WorldConfig
 @export var palette: TerrainPalette
-@export var orbit_distance: float = 180.0
+## Plus près que l’ancien 180 : cadrage proche du monde JS (~120 u) → arbres lisibles.
+@export var orbit_distance: float = 120.0
 @export var min_distance: float = 42.0
-@export var max_distance: float = 470.0
+## Plafond bas : inutile de dézoomer au-delà de l’emprise chargée (load_radius 1 ≈ 160 u).
+@export var max_distance: float = 280.0
 @export var orbit_sensitivity: float = 0.005
 @export var pan_sensitivity: float = 0.35
 
@@ -31,8 +33,8 @@ signal focus_changed(focus: Vector3)
 @export_group("Vent (lecture)")
 ## Nombre de traits sur le plan horizontal.
 @export_range(40, 220) var wind_streak_count: int = 110
-## Demi-taille de référence (à orbit ≈ 180) ; zoom/dézoom la scale.
-@export_range(40.0, 200.0) var wind_streak_extent: float = 95.0
+## Demi-taille de référence (à orbit ≈ 120) ; zoom/dézoom la scale.
+@export_range(40.0, 200.0) var wind_streak_extent: float = 70.0
 ## Hauteur du plan au-dessus de l’eau.
 @export_range(4.0, 80.0) var wind_streak_height: float = 32.0
 
@@ -50,7 +52,7 @@ var _streak_ox: PackedFloat32Array = PackedFloat32Array()
 var _streak_oz: PackedFloat32Array = PackedFloat32Array()
 var _streak_len: PackedFloat32Array = PackedFloat32Array()
 ## Étendue actuellement appliquée au wrap (suit le zoom).
-var _streak_ext_live: float = 95.0
+var _streak_ext_live: float = 70.0
 var _rng := RandomNumberGenerator.new()
 var _source_root: Node3D
 var _chunk_grid: MeshInstance3D
@@ -163,11 +165,9 @@ func _on_view_layer_changed(_layer: int) -> void:
 
 
 func _on_eco_changed() -> void:
-	# Arbres suivent la fertilité (humidité source) même en vue naturelle.
-	ChunkManager.request_eco_tree_rebuild()
-	# Couches colorimétriques : recolor mesh près des sources.
-	if WorldManager.view_layer != WorldManager.ViewLayer.NATURAL:
-		ChunkManager.request_eco_mesh_rebuild()
+	# Naturel aussi : couleurs = pollution + veg (pas seulement les overlays).
+	# Throttle + filtre chunks influencés dans ChunkManager (arbres inclus au build).
+	ChunkManager.request_eco_mesh_rebuild()
 
 
 func _setup_source_visuals() -> void:
@@ -331,10 +331,10 @@ func _plane_y() -> float:
 
 ## Demi-étendue du calque vent selon le zoom (suit le champ de vue).
 func _wind_extent_for_zoom() -> float:
-	# Réf. exportée ≈ orbit 180 ; near plus serré, far plus large.
-	var ref_orbit := 180.0
+	# Réf. exportée ≈ orbit 120 ; near plus serré, far plus large.
+	var ref_orbit := 120.0
 	var scale := orbit_distance / ref_orbit
-	return clampf(wind_streak_extent * scale, 36.0, 360.0)
+	return clampf(wind_streak_extent * scale, 36.0, 220.0)
 
 
 ## Wrap toroïdal dans [-ext, ext].
@@ -452,7 +452,7 @@ func pan_xz(offset: Vector3) -> void:
 
 func reset_camera(top: bool = false) -> void:
 	focus = Vector3(0.0, 8.0, 0.0)
-	orbit_distance = 180.0
+	orbit_distance = 120.0
 	if top:
 		_yaw = 0.0
 		_pitch = 1.35

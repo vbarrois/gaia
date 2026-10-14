@@ -9,6 +9,7 @@ signal build_stats(pending: int, triangles: int)
 const CHUNK_SCENE_3D := preload("res://scenes/world/chunk_3d.tscn")
 ## Intervalle mini entre recolors éco (temps réel) — évite le saccadé en ×10+.
 const ECO_MESH_INTERVAL_SEC := 0.45
+const ECO_MESH_INTERVAL_FAST_SEC := 0.85
 
 var draw_map: Node3D = null
 var chunks_root: Node3D = null
@@ -71,7 +72,10 @@ func _process(delta: float) -> void:
 		_rebuild_filter.clear()
 	elif _eco_mesh_due:
 		_eco_mesh_timer += delta
-		if _eco_mesh_timer >= ECO_MESH_INTERVAL_SEC:
+		var interval := ECO_MESH_INTERVAL_SEC
+		if TimeManager and TimeManager.effective_speed() >= 50.0:
+			interval = ECO_MESH_INTERVAL_FAST_SEC
+		if _eco_mesh_timer >= interval:
 			_eco_mesh_due = false
 			_eco_mesh_timer = 0.0
 			_flush_eco_visuals()

@@ -4,7 +4,8 @@ Inventaire des capacités **produit / technique**.
 Statuts : `done` · `wip` · `todo` · `frozen` · `legacy-js` · `dropped`.
 
 La boucle de jeu (win/lose, deck, météo tour) reste spécifiée dans [`BRIEF-LOOP.md`](./BRIEF-LOOP.md).  
-Le suivi d’ordre d’implémentation : [`BACKLOG.md`](./BACKLOG.md) + [`ROADMAP.md`](./ROADMAP.md).
+Le suivi d’ordre d’implémentation : [`BACKLOG.md`](./BACKLOG.md) + [`ROADMAP.md`](./ROADMAP.md).  
+Design éco riche (pollutions ×4, succession, graines) : [`docs/ECO-SYSTEM-ROADMAP.md`](./docs/ECO-SYSTEM-ROADMAP.md) (piste E / PDF).
 
 ---
 
@@ -28,9 +29,9 @@ Le suivi d’ordre d’implémentation : [`BACKLOG.md`](./BACKLOG.md) + [`ROADMA
 | F-G11b | **done** | Layer vent : boussole HUD + traits plan // tuiles | `WindState` / WindCompass |
 | F-G12 | wip | Données éco live (jour) | moisture via source ; soil/pol baseline |
 | F-G13 | **done** | Source + capillarité + fertilité dérivée | `WaterSource` / `EcoSim` |
-| F-G14 | todo | Hotspots pollution héritée | cicatrices, pas de bâtiments |
-| F-G15 | **done** | Arbres MultiMesh conditionnels (veg > 25) | `tree_scatter.gd` / chunk 3D |
-| F-G16 | todo | Lessivage pollution par pluie | vers oasis / aval |
+| F-G14 | **done** | Hotspots pollution héritée | `PollutionHotspot` autour source |
+| F-G15 | **done** | Arbres MultiMesh (fertilité ≥ seuil) | `tree_scatter.gd` / chunk 3D |
+| F-G16 | wip | Migration pollution hydrique + particulaire (vent) | `EcoSim` ; pluie P2 ensuite |
 | F-G17 | todo | Sécheresse (humidité ↓, arbres meurent) | pression sans villes |
 | F-G18 | todo | Naissance nouvelle source | sol propre + humide + veg |
 | F-G19 | todo | Météo tour (vent 4 dirs, pluie) | P2 |
@@ -40,6 +41,7 @@ Le suivi d’ordre d’implémentation : [`BACKLOG.md`](./BACKLOG.md) + [`ROADMA
 | F-G23 | todo | Persist save (config + partie) | |
 | F-G24 | frozen | Atelier relief comme gameplay | hors brief (P6-3) |
 | F-G25 | **dropped** | Villes + routes + lac urbain | cassé : humains disparus |
+| F-G26 | todo | Système éco riche (biomasse / humus / 4 pol / graines) | piste E — [`ECO-SYSTEM-ROADMAP.md`](./docs/ECO-SYSTEM-ROADMAP.md) |
 
 ---
 

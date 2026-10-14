@@ -14,16 +14,26 @@ extends Resource
 @export_range(0.0, 35.0) var warp: float = 12.0
 
 @export_group("Écologie de départ")
-@export_range(0.0, 100.0) var pollution: float = 58.0
+@export_range(0.0, 100.0) var pollution: float = 72.0
+## Nombre de cicatrices toxiques (hotspots) autour de la source.
+@export_range(0, 16) var hotspot_count: int = 7
+@export_range(2, 12) var hotspot_radius_min: int = 4
+@export_range(3, 16) var hotspot_radius_max: int = 8
+@export_range(10.0, 80.0) var hotspot_peak_min: float = 48.0
+@export_range(20.0, 100.0) var hotspot_peak_max: float = 78.0
+## Distance Chebyshev source → hotspot (évite le cœur d’oasis).
+@export_range(4, 40) var hotspot_min_dist: int = 7
+@export_range(8, 64) var hotspot_max_dist: int = 18
 
 @export_group("Chunks (Godot)")
 ## Taille d’un chunk en tuiles (16×16 recommandé).
 @export_range(8, 64) var chunk_size: int = 16
-## Rayon de chargement autour de la caméra (en chunks).
-@export_range(1, 12) var load_radius: int = 3
+## Rayon Chebyshev autour du focus (0 = 1 chunk, comme le monde fixe JS 36×36
+## si chunk_size≈36 ; 1 = 3×3 ≈ emprise JS à chunk 16).
+@export_range(0, 12) var load_radius: int = 1
 ## Taille d’une tuile (réf. 2D / conversion).
 @export_range(8, 64) var tile_size: int = 16
-## Échelle monde (unités → tuiles). Plus grand = relief plus étendu.
+## Échelle monde (unités → tuiles). 3.33 = CELL JS (SIZE 120 / GRID 36).
 @export var world_unit_per_tile: float = 3.33
 
 @export_group("Terrain 3D / opti")
@@ -40,7 +50,7 @@ extends Resource
 ## Max chunks meshés par frame (évite les hitchs).
 @export_range(1, 8) var build_budget_per_frame: int = 2
 ## Taille initiale du pool de chunks recyclés.
-@export_range(0, 64) var chunk_pool_prewarm: int = 8
+@export_range(0, 64) var chunk_pool_prewarm: int = 4
 
 
 static func defaults() -> WorldConfig:
@@ -57,8 +67,15 @@ func sanitize() -> void:
 	falloff = clampf(falloff, 0.0, 100.0)
 	warp = clampf(warp, 0.0, 35.0)
 	pollution = clampf(pollution, 0.0, 100.0)
+	hotspot_count = clampi(hotspot_count, 0, 16)
+	hotspot_radius_min = clampi(hotspot_radius_min, 2, 12)
+	hotspot_radius_max = clampi(hotspot_radius_max, hotspot_radius_min, 16)
+	hotspot_peak_min = clampf(hotspot_peak_min, 10.0, 80.0)
+	hotspot_peak_max = clampf(hotspot_peak_max, hotspot_peak_min, 100.0)
+	hotspot_min_dist = clampi(hotspot_min_dist, 4, 40)
+	hotspot_max_dist = clampi(hotspot_max_dist, hotspot_min_dist + 2, 64)
 	chunk_size = clampi(chunk_size, 8, 64)
-	load_radius = clampi(load_radius, 1, 12)
+	load_radius = clampi(load_radius, 0, 12)
 	tile_size = clampi(tile_size, 8, 64)
 	mesh_resolution = clampi(mesh_resolution, 4, 32)
 	lod_near = clampi(lod_near, 0, 4)
@@ -80,6 +97,13 @@ func duplicate_config() -> WorldConfig:
 	copy.falloff = falloff
 	copy.warp = warp
 	copy.pollution = pollution
+	copy.hotspot_count = hotspot_count
+	copy.hotspot_radius_min = hotspot_radius_min
+	copy.hotspot_radius_max = hotspot_radius_max
+	copy.hotspot_peak_min = hotspot_peak_min
+	copy.hotspot_peak_max = hotspot_peak_max
+	copy.hotspot_min_dist = hotspot_min_dist
+	copy.hotspot_max_dist = hotspot_max_dist
 	copy.chunk_size = chunk_size
 	copy.load_radius = load_radius
 	copy.tile_size = tile_size

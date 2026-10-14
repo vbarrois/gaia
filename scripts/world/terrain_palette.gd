@@ -84,7 +84,8 @@ func natural(height: float, water_level: float, pollution: float, veg: float) ->
 		return color_water_shallow().lerp(color_water_deep(), depth)
 
 	var col := color_soil().lerp(color_grass(), clampf(veg / 70.0, 0.0, 1.0))
-	col = col.lerp(color_polluted(), _smooth(33.0, 90.0, pollution) * 0.75)
+	# Teinte toxique plus agressive sur les cicatrices (hautes valeurs).
+	col = col.lerp(color_polluted(), _smooth(28.0, 78.0, pollution) * 0.92)
 	col = col.lerp(color_rock(), _smooth(19.0, 42.0, height) * 0.85)
 	if height < water_level + 1.5:
 		var shore_t := (1.0 - (height - water_level) / 1.5) * 0.85

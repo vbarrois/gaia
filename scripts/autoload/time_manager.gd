@@ -10,6 +10,8 @@ signal days_advanced(day: int, count: int)
 signal day_advanced(day: int)
 
 const DAY_SECONDS := 8.0
+## Évite les hitchs en ×100/×300 (simu + rebuilds).
+const MAX_DAYS_PER_FRAME := 4
 ## Paliers de tempo (0 = pause).
 const SPEED_STEPS: Array[float] = [0.0, 0.5, 1.0, 2.0, 3.0, 10.0, 100.0, 300.0]
 
@@ -26,10 +28,13 @@ func _process(delta: float) -> void:
 		return
 	_day_accum += delta * speed
 	var n := 0
-	while _day_accum >= DAY_SECONDS:
+	while _day_accum >= DAY_SECONDS and n < MAX_DAYS_PER_FRAME:
 		_day_accum -= DAY_SECONDS
 		day += 1
 		n += 1
+	# Surplus : on garde l’accum mais on plafonne le travail (lisse le ×100).
+	if _day_accum > DAY_SECONDS * float(MAX_DAYS_PER_FRAME):
+		_day_accum = DAY_SECONDS * float(MAX_DAYS_PER_FRAME)
 	if n > 0:
 		days_advanced.emit(day, n)
 		day_advanced.emit(day)

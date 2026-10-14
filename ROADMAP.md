@@ -10,8 +10,10 @@ Ce fichier = **suivi produit** (pas du code). Sauf demande explicite : discuter 
 | Fichier | Rôle |
 |---|---|
 | [`FEATURES.md`](./FEATURES.md) | Inventaire capacités (Godot + legacy JS) |
-| [`BACKLOG.md`](./BACKLOG.md) | Backlog technique Godot (`G-*`) |
+| [`BACKLOG.md`](./BACKLOG.md) | Backlog technique Godot (`G-*` / `GE-*`) |
 | [`docs/godot/ARCHITECTURE.md`](./docs/godot/ARCHITECTURE.md) | Arborescence & managers Godot |
+| [`docs/ECO-SYSTEM-ROADMAP.md`](./docs/ECO-SYSTEM-ROADMAP.md) | Piste E — système éco (PDF 2026-10-13) |
+| [`docs/Proposition système écologique.pdf`](./docs/Proposition%20syst%C3%A8me%20%C3%A9cologique.pdf) | Source design piste E |
 
 ---
 
@@ -115,7 +117,8 @@ Aperçu (atelier) → Créer ce monde (pause)
 5. **Godot = runtime cible** ; JS = référence jusqu’à parité.  
 6. **On casse villes + routes** parce que les humains ont détruit puis disparu : pollution = héritage ; antagoniste = climat.  
 7. **On casse le scénario Source→Lac urbain** parce que la progression = **étendre l’oasis** et **faire naître des sources**, pas sauver un lac de villes.  
-8. **On casse Planter / Dépolluer séparés** parce que la dépollution = **phytoremédiation** : famille **Semis** à variantes (Mousses / Arbustes / Mycélium) ; pluie forcée hors famille.
+8. **On casse Planter / Dépolluer séparés** parce que la dépollution = **phytoremédiation** : famille **Semis** à variantes (Mousses / Arbustes / Mycélium) ; pluie forcée hors famille.  
+9. Le PDF système éco **enrichit Semis** (coefficients, biomasse/humus, graines) — **pas** un second système de dépollution parallèle. Détail : [`docs/ECO-SYSTEM-ROADMAP.md`](./docs/ECO-SYSTEM-ROADMAP.md).
 
 ---
 
@@ -138,9 +141,9 @@ Priorité haute → basse. IDs stables pour les chats agent.
 
 | ID | Statut | Item |
 |---|---|---|
-| **P1-1** | wip | Carte départ : 1 source + capillarité humidité (hotspots pollution later) |
+| **P1-1** | wip | Carte départ : 1 source + capillarité + hotspots pollution |
 | P1-2 | todo | Ciblage **autour sources / lisière vivante** seulement |
-| P1-3 | todo | Sans joueur : oasis meurt en 4–5 saisons (lessivage et/ou sécheresse) |
+| P1-3 | wip | Sans joueur : oasis meurt (migration pol. hydrique+particulaire ; sécheresse later) |
 | P1-4 | todo | Règle naissance 2ᵉ source (sol propre + humide + veg) |
 | P1-5 | todo | Seuils win/lose (phrases du brief) |
 
@@ -210,6 +213,23 @@ Priorité haute → basse. IDs stables pour les chats agent.
 | V1-3 | frozen | Orage au panneau ; lose toujours par pollution / sécheresse |
 | V1-4 | frozen | Front de reconquête 3ᵉ+ sources |
 
+### Piste E — Système écologique (PDF)
+
+Source : [`docs/ECO-SYSTEM-ROADMAP.md`](./docs/ECO-SYSTEM-ROADMAP.md).  
+v0 Oasis d’abord ; **E0–E1** peuvent suivre / chevaucher le polish ; **E4–E6** = v1 éco riche.
+
+| ID | Statut | Item |
+|---|---|---|
+| **E0** | todo | Coefficients 3 Semis + biomasse morte / humus minimaux |
+| **E1** | todo | Split pollutions (chimique + organique → particulaire → persistante) |
+| E2 | todo | Cycle vivant → morte → humus (+ évap / érosion) |
+| E3 | todo | Succession phases 1–4 + colonisation hybride |
+| E4 | todo | Banque de graines + herbier / inventaire |
+| E5 | todo | Extractrices + biomasse contaminée + récolte |
+| E6 | todo | Roseaux / zones humides + régression climatique |
+
+Tech : `GE-*` dans [`BACKLOG.md`](./BACKLOG.md).
+
 ---
 
 ## 3. Backlog « dette / polish » du proto actuel (hors boucle)
@@ -237,6 +257,9 @@ Utile si on garde Gaya JS comme plateau SIG — **ne bloque pas** P1–P5.
 | Q4 | ~~Chemin = route / lit d’eau ?~~ | **Caduc** (plus de route) |
 | **Q5** | Forcer pluie : lisière seulement ou zone libre sous nuages ? | P3-6 |
 | **Q6** | Seuils exacts naissance 2ᵉ source (pollution / humidité / veg) ? | P1-4 |
+| **QE1** | 4 pollutions exposées HUD dès E1, ou score agrégé + types internes ? | E1 |
+| **QE2** | Inventaire graines : UI Godot dès E4, ou stub debug ? | E4 |
+| **QE3** | Combien d’espèces herbier v1 ? (PDF : 6 slots) | E4 |
 
 Décision figée : **« on casse X parce que Y »** (écrit §1.5).
 
@@ -244,13 +267,15 @@ Décision figée : **« on casse X parce que Y »** (écrit §1.5).
 
 ## 5. Prochaine action
 
-**Piste active = Godot** (`G0-6`) : valider le proto DrawMap+chunks dans l’éditeur.  
-Ensuite enjeu produit : **P1-1 / G2-1** — chapitre Oasis (1 source, hotspots, pas de villes).
+**Piste active = Godot** : polish Oasis (**P1-1 / G2**) + feel F5.  
+Piste E documentée — ne pas démarrer E2+ avant win/lose v0 sauf E0 (Semis).
 
 ```
 P0 (socle + Godot G0 + brief ✓) → G1 SIG → P1/G2 (Oasis + 2ᵉ source)
-                                      ↘ P2 (météo) → P3 (deck)
+                                      ↘ P2 (météo) → P3 (deck Semis)
                                       ↘ P4 (layers) ↗
                                                → P5 (textes + win/lose) → stop v0
+                                                    ↘ E0–E1 (éco Semis / pollutions)
+                                                    → E2–E6 (cycle, graines, succession)
                                                     → G4 cleanup JS
 ```

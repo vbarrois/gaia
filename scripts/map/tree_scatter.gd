@@ -92,6 +92,7 @@ static func collect_for_chunk(
 			var r := HashUtil.hash01(seed + tx + tz * TILE_STRIDE)
 			if r >= fert / FERT_CHANCE:
 				continue
+			# Jitter ±0.9 u comme trees.js (monde CELL≈3.33).
 			var ox := (HashUtil.hash01(tx + tz * 89 + 442) - 0.5) * 1.8
 			var oz := (HashUtil.hash01(tx + tz * 12 + 72) - 0.5) * 1.8
 			var wx := (float(tx) + 0.5) * unit + ox
@@ -99,7 +100,8 @@ static func collect_for_chunk(
 			var y := generator.height_at_world(wx, wz)
 			if y < water + 0.25:
 				continue
-			var s := 0.65 + fert * 0.022
+			# Même courbe que JS : s = 0.7 + veg * 0.018 (fertilité ≈ veg live).
+			var s := 0.7 + fert * 0.018
 			list.append({
 				"x": wx,
 				"y": y,

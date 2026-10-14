@@ -15,6 +15,8 @@ var moisture: float = 50.0
 var veg: float = 0.0
 ## True si une WaterSource est sur cette tuile.
 var is_source: bool = false
+## True si dans une cicatrice (hotspot) de pollution.
+var is_hotspot: bool = false
 
 
 func _init(
@@ -52,4 +54,5 @@ func to_dict() -> Dictionary:
 		"veg": veg,
 		"fertility": fertility(),
 		"is_source": is_source,
+		"is_hotspot": is_hotspot,
 	}

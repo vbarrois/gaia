@@ -2,6 +2,8 @@ extends Node
 ## WorldManager — config + Perlin + palette + vent + éco (source / capillarité).
 ## Accès global : `WorldManager.xxx`
 
+const PollutionHotspotScr := preload("res://scripts/world/pollution_hotspot.gd")
+
 signal config_changed(config: WorldConfig)
 signal seed_changed(seed: int)
 signal palette_changed(palette: TerrainPalette)
@@ -34,7 +36,9 @@ var wind_ready: bool = false
 
 ## Sources d’eau actives.
 var sources: Array[WaterSource] = []
-## Overrides live : Vector2i → { soil, moisture, pollution }.
+## Cicatrices toxiques (héritage) autour de la source.
+var hotspots: Array = []
+## Overrides live : Vector2i → { soil, moisture, pollution, veg }.
 var eco: Dictionary = {}
 
 
@@ -62,7 +66,7 @@ func _on_days_advanced(_day: int, count: int) -> void:
 	if generator == null or sources.is_empty():
 		return
 	for _i in count:
-		EcoSim.step_day(sources, eco, generator)
+		_step_eco_once()
 	eco_changed.emit()
 
 
@@ -150,50 +154,102 @@ func view_layer_name() -> String:
 	return VIEW_LAYER_NAMES[view_layer]
 
 
-## Place 1 source + première capillarité.
+## Place 1 source + hotspots + première capillarité.
 func bootstrap_eco() -> void:
 	if generator == null:
 		return
 	sources.clear()
 	eco.clear()
+	hotspots.clear()
+	if generator:
+		generator.hotspots = []
+		generator.clean_tiles = []
 	var tile := _find_spawn_source_tile()
 	sources.append(WaterSource.new(tile, DEFAULT_SOURCE_INTENSITY))
-	EcoSim.step_day(sources, eco, generator)
+	generator.clean_tiles = [tile]
+	_bootstrap_hotspots(tile)
+	EcoSim._seed_hotspot_tiles(eco, generator)
+	_step_eco_once()
 	sources_changed.emit()
 	eco_changed.emit()
-	print("[WorldManager] source @ (%d,%d) intensity=%.1f radius=%d" % [
-		tile.x, tile.y, DEFAULT_SOURCE_INTENSITY, sources[0].radius()
+	print("[WorldManager] source @ (%d,%d) intensity=%.1f radius=%d  hotspots=%d" % [
+		tile.x, tile.y, DEFAULT_SOURCE_INTENSITY, sources[0].radius(), hotspots.size()
 	])
+	for h in hotspots:
+		print(
+			"[WorldManager] hotspot @ (%d,%d) r=%d peak=%.0f"
+			% [h.tile.x, h.tile.y, h.radius, h.peak]
+		)
+
+
+func _bootstrap_hotspots(anchor: Vector2i) -> void:
+	if config == null or generator == null:
+		return
+	hotspots = PollutionHotspotScr.generate_around(
+		config.seed,
+		anchor,
+		config.hotspot_count,
+		config.hotspot_radius_min,
+		config.hotspot_radius_max,
+		config.hotspot_peak_min,
+		config.hotspot_peak_max,
+		config.hotspot_min_dist,
+		config.hotspot_max_dist,
+		generator
+	)
+	generator.hotspots = hotspots
+
+
+func hotspot_at(tile: Vector2i):
+	if generator == null:
+		return null
+	return generator.hotspot_at_tile(tile.x, tile.y)
 
 
 func step_eco() -> void:
 	if generator == null or sources.is_empty():
 		return
-	EcoSim.step_day(sources, eco, generator)
+	_step_eco_once()
 	eco_changed.emit()
 
 
-## Chunks touchés par au moins une source (inject + auréole) — pour recolor ciblé.
+func _step_eco_once() -> void:
+	var wdir := EcoSim.wind_tile_dir_from_vector(wind_vector())
+	var strong := wind != null and wind.strength >= WindState.STRENGTH_STRONG
+	EcoSim.step_day(sources, eco, generator, wdir, strong)
+
+
+## Chunks touchés par source / hotspots / zone lessivage — pour recolor ciblé.
 func eco_affected_chunk_coords() -> Array[Vector2i]:
 	var out: Array[Vector2i] = []
 	var seen: Dictionary = {}
 	if config == null:
 		return out
 	var size := config.chunk_size
+	# Pad mesh/arbres = reach source + hotspots (pas tout POLLUTION_SIM_RADIUS → hitch ×100).
 	for src in sources:
-		var reach := EcoSim.max_reach(src)
-		var t0 := Vector2i(src.tile.x - reach, src.tile.y - reach)
-		var t1 := Vector2i(src.tile.x + reach, src.tile.y + reach)
-		var c0 := Vector2i(floori(float(t0.x) / float(size)), floori(float(t0.y) / float(size)))
-		var c1 := Vector2i(floori(float(t1.x) / float(size)), floori(float(t1.y) / float(size)))
-		for cy in range(c0.y, c1.y + 1):
-			for cx in range(c0.x, c1.x + 1):
-				var c := Vector2i(cx, cy)
-				if seen.has(c):
-					continue
-				seen[c] = true
-				out.append(c)
+		_append_chunk_pad(seen, out, src.tile, EcoSim.max_reach(src) + 2, size)
+	for h in hotspots:
+		if h == null:
+			continue
+		_append_chunk_pad(seen, out, h.tile, int(h.radius) + 3, size)
 	return out
+
+
+func _append_chunk_pad(
+	seen: Dictionary, out: Array[Vector2i], center: Vector2i, reach: int, size: int
+) -> void:
+	var t0 := Vector2i(center.x - reach, center.y - reach)
+	var t1 := Vector2i(center.x + reach, center.y + reach)
+	var c0 := Vector2i(floori(float(t0.x) / float(size)), floori(float(t0.y) / float(size)))
+	var c1 := Vector2i(floori(float(t1.x) / float(size)), floori(float(t1.y) / float(size)))
+	for cy in range(c0.y, c1.y + 1):
+		for cx in range(c0.x, c1.x + 1):
+			var c := Vector2i(cx, cy)
+			if seen.has(c):
+				continue
+			seen[c] = true
+			out.append(c)
 
 
 func _find_spawn_source_tile() -> Vector2i:
@@ -247,6 +303,15 @@ func get_cell(tile_x: int, tile_y: int) -> CellData:
 		var e: Dictionary = eco[key]
 		cell.soil = float(e.get("soil", cell.soil))
 		cell.moisture = float(e.get("moisture", cell.moisture))
-		cell.pollution = float(e.get("pollution", cell.pollution))
+		# Pollution live si écrite ; sinon baseline (bruit + hotspot).
+		if e.has("pollution"):
+			cell.pollution = float(e["pollution"])
+		# Veg live (conso / croissance EcoSim) ; sinon formule pollution.
+		if e.has("veg"):
+			cell.veg = float(e["veg"])
+		elif not cell.wet and config != null:
+			var jitter := HashUtil.hash01(config.seed * 31 + tile_x + tile_y * 97) * 9.0
+			cell.veg = clampf((100.0 - cell.pollution) * 0.31 + jitter, 0.0, 100.0)
 	cell.is_source = source_at(key) != null
+	cell.is_hotspot = hotspot_at(key) != null
 	return cell
